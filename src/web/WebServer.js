@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 const Logger = require('../utils/logger');
 
@@ -16,6 +17,17 @@ class WebServer {
         this.notificationRegistry = notificationRegistry;
         this.scheduler = scheduler;
         this.logger = new Logger('WebServer');
+
+        const webPassword = process.env.WEB_PASSWORD || process.env.ADMIN_PASSWORD;
+        if (webPassword && webPassword.trim()) {
+            this.authRequired = true;
+            this.expectedPasswordHash = crypto.createHash('sha256').update(webPassword.trim()).digest('hex');
+            this.logger.info('Password authentication enabled (SHA-256 protected).');
+        } else {
+            this.authRequired = false;
+            this.expectedPasswordHash = null;
+            this.logger.info('Password authentication disabled (WEB_PASSWORD not set).');
+        }
 
         this.app = express();
         this.server = http.createServer(this.app);
@@ -37,6 +49,7 @@ class WebServer {
         const cookies = this.configManager.getCookies() || [];
         return {
             version: pkg.version,
+            authRequired: this.authRequired,
             isPollingEnabled: this.configManager.config.isPollingEnabled,
             isPending: Boolean(this.scheduler?.isPending),
             totalSent: this.configManager.sentIds.size,
@@ -47,62 +60,94 @@ class WebServer {
         };
     }
 
+    sendInitialState(socket) {
+        socket.emit('status_update', this.getStatusPayload());
+        socket.emit('config_update', this.configManager.config);
+        socket.emit('deals_update', this.dealsManager.getDeals());
+    }
+
     setupSocket() {
         this.io.on('connection', (socket) => {
             this.logger.info(`Client connected via WebSocket: ${socket.id}`);
             
-            // Send initial state upon connection
-            socket.emit('status_update', this.getStatusPayload());
-            socket.emit('config_update', this.configManager.config);
-            socket.emit('deals_update', this.dealsManager.getDeals());
+            const handshakeHash = socket.handshake.auth?.passwordHash;
+            if (!this.authRequired || (handshakeHash && handshakeHash === this.expectedPasswordHash)) {
+                socket.authenticated = true;
+                this.sendInitialState(socket);
+            } else {
+                socket.authenticated = false;
+                socket.emit('status_update', { version: pkg.version, authRequired: true, isAuthRequired: true });
+            }
 
-            socket.on('run_check', () => {
+            socket.on('auth', (data) => {
+                if (!this.authRequired) return;
+                const clientHash = data?.passwordHash;
+                if (clientHash === this.expectedPasswordHash) {
+                    socket.authenticated = true;
+                    socket.emit('auth_success', { passwordHash: clientHash });
+                    this.sendInitialState(socket);
+                } else {
+                    socket.emit('auth_error', { message: 'Invalid password' });
+                }
+            });
+
+            const checkAuth = (handler) => {
+                return (...args) => {
+                    if (this.authRequired && !socket.authenticated) {
+                        socket.emit('auth_error', { message: 'Unauthorized' });
+                        return;
+                    }
+                    handler(...args);
+                };
+            };
+
+            socket.on('run_check', checkAuth(() => {
                 this.logger.info(`WS action 'run_check' from ${socket.id}`);
                 this.scheduler.runManualCheck();
                 this.broadcastStatus();
-            });
+            }));
 
-            socket.on('toggle_polling', () => {
+            socket.on('toggle_polling', checkAuth(() => {
                 this.logger.info(`WS action 'toggle_polling' from ${socket.id}`);
                 const isEnabled = !this.configManager.config.isPollingEnabled;
                 this.configManager.saveConfig({ isPollingEnabled: isEnabled });
                 this.scheduler.restart();
                 this.broadcastConfig();
                 this.broadcastStatus();
-            });
+            }));
 
-            socket.on('save_config', (newConfig) => {
+            socket.on('save_config', checkAuth((newConfig) => {
                 this.logger.info(`WS action 'save_config' from ${socket.id}`);
                 this.configManager.saveConfig(newConfig);
                 this.scheduler.restart();
                 this.broadcastConfig();
                 this.broadcastStatus();
-            });
+            }));
 
-            socket.on('delete_deal', (dealId) => {
+            socket.on('delete_deal', checkAuth((dealId) => {
                 this.logger.info(`WS action 'delete_deal' (${dealId}) from ${socket.id}`);
                 this.dealsManager.deleteDeal(dealId);
                 this.broadcastDeals();
                 this.broadcastStatus();
-            });
+            }));
 
-            socket.on('save_cookies', (cookies) => {
+            socket.on('save_cookies', checkAuth((cookies) => {
                 this.logger.info(`WS action 'save_cookies' from ${socket.id}`);
                 this.configManager.saveCookies(cookies);
                 this.broadcastStatus();
-            });
+            }));
 
-            socket.on('get_cookies', (callback) => {
+            socket.on('get_cookies', checkAuth((callback) => {
                 if (typeof callback === 'function') {
                     callback(this.configManager.getCookies());
                 }
-            });
+            }));
 
-            socket.on('clear_sent_deals', () => {
+            socket.on('clear_sent_deals', checkAuth(() => {
                 this.logger.info(`WS action 'clear_sent_deals' from ${socket.id}`);
                 this.configManager.clearSentIds();
                 this.broadcastStatus();
-            });
+            }));
 
             socket.on('disconnect', () => {
                 this.logger.info(`Client disconnected: ${socket.id}`);
@@ -139,12 +184,24 @@ class WebServer {
     setupRoutes() {
         const api = express.Router();
 
+        const checkRestAuth = (req, res, next) => {
+            if (!this.authRequired) return next();
+            const clientHash = req.headers['x-auth-hash'] || req.query.authHash;
+            if (clientHash === this.expectedPasswordHash) return next();
+            res.status(401).json({ error: 'Unauthorized', authRequired: true });
+        };
+
+        // Statistics & Status
+        api.get('/status', (req, res) => {
+            res.json(this.getStatusPayload());
+        });
+
         // Config Endpoints
-        api.get('/config', (req, res) => {
+        api.get('/config', checkRestAuth, (req, res) => {
             res.json(this.configManager.config);
         });
 
-        api.post('/config', (req, res) => {
+        api.post('/config', checkRestAuth, (req, res) => {
             this.configManager.saveConfig(req.body);
             this.scheduler.restart();
             this.broadcastConfig();
@@ -153,11 +210,11 @@ class WebServer {
         });
 
         // Cookies Endpoints
-        api.get('/cookies', (req, res) => {
+        api.get('/cookies', checkRestAuth, (req, res) => {
             res.json(this.configManager.getCookies());
         });
 
-        api.post('/cookies', (req, res) => {
+        api.post('/cookies', checkRestAuth, (req, res) => {
             try {
                 const { cookies } = req.body;
                 this.configManager.saveCookies(cookies);
@@ -169,24 +226,19 @@ class WebServer {
         });
 
         // Deals Endpoints
-        api.get('/deals', (req, res) => {
+        api.get('/deals', checkRestAuth, (req, res) => {
             res.json(this.dealsManager.getDeals());
         });
 
-        api.delete('/deals/:id', (req, res) => {
+        api.delete('/deals/:id', checkRestAuth, (req, res) => {
             this.dealsManager.deleteDeal(req.params.id);
             this.broadcastDeals();
             this.broadcastStatus();
             res.json({ success: true });
         });
 
-        // Statistics & Status
-        api.get('/status', (req, res) => {
-            res.json(this.getStatusPayload());
-        });
-
         // Actions
-        api.post('/action/toggle-polling', (req, res) => {
+        api.post('/action/toggle-polling', checkRestAuth, (req, res) => {
             const isEnabled = !this.configManager.config.isPollingEnabled;
             this.configManager.saveConfig({ isPollingEnabled: isEnabled });
             this.scheduler.restart();
@@ -195,13 +247,13 @@ class WebServer {
             res.json({ success: true, isPollingEnabled: isEnabled });
         });
 
-        api.post('/action/run-check', async (req, res) => {
+        api.post('/action/run-check', checkRestAuth, async (req, res) => {
             this.scheduler.runManualCheck();
             this.broadcastStatus();
             res.json({ success: true, message: 'Check started' });
         });
 
-        api.post('/action/clear-sent-deals', (req, res) => {
+        api.post('/action/clear-sent-deals', checkRestAuth, (req, res) => {
             this.configManager.clearSentIds();
             this.broadcastStatus();
             res.json({ success: true, message: 'Sent deals cleared' });

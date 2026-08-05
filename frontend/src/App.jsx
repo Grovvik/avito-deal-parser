@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders, RotateCcw } from 'lucide-react';
+import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders, RotateCcw, LogOut, Lock } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useTheme } from './hooks/useTheme';
 import Modal from './components/Modal';
 import ConfirmModal from './components/ConfirmModal';
 import { useToast } from './components/Toast';
 import avitoLogo from './assets/avito.svg';
+
+const hashPassword = async (pwd) => {
+  const msgBuffer = new TextEncoder().encode(pwd);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button
@@ -241,6 +248,9 @@ function App() {
   const [notificationForm, setNotificationForm] = useState({});
 
   const [isWsConnected, setIsWsConnected] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authPasswordInput, setAuthPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
   const socketRef = useRef(null);
 
   const openCookiesModal = () => {
@@ -272,8 +282,11 @@ function App() {
   };
 
   useEffect(() => {
+    const savedHash = localStorage.getItem('web_auth_hash') || '';
+
     const socket = io({
       path: '/ws',
+      auth: { passwordHash: savedHash },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnectionDelay: 2000
@@ -294,10 +307,14 @@ function App() {
 
     socket.on('status_update', (newStatus) => {
       setStatus(newStatus);
+      if (!newStatus.authRequired) {
+        setIsAuthenticated(true);
+      }
     });
 
     socket.on('config_update', (newConfig) => {
       setConfig(newConfig);
+      setIsAuthenticated(true);
       if (newConfig.locale && newConfig.locale !== i18n.language) {
         i18n.changeLanguage(newConfig.locale);
       }
@@ -305,6 +322,22 @@ function App() {
 
     socket.on('deals_update', (newDeals) => {
       setDeals(newDeals);
+      setIsAuthenticated(true);
+    });
+
+    socket.on('auth_success', ({ passwordHash }) => {
+      if (passwordHash) {
+        localStorage.setItem('web_auth_hash', passwordHash);
+      }
+      setIsAuthenticated(true);
+      setAuthError('');
+    });
+
+    socket.on('auth_error', (data) => {
+      setIsAuthenticated(false);
+      if (data?.message) {
+        setAuthError(t('invalidPassword'));
+      }
     });
 
     return () => {
@@ -337,6 +370,29 @@ function App() {
     socketRef.current?.emit('clear_sent_deals');
     toast.success(t('sentDealsCleared'));
     setClearSentModalOpen(false);
+  };
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    if (!authPasswordInput) return;
+    try {
+      const hash = await hashPassword(authPasswordInput.trim());
+      if (socketRef.current) {
+        socketRef.current.auth = { passwordHash: hash };
+        socketRef.current.emit('auth', { passwordHash: hash });
+      }
+    } catch (err) {
+      setAuthError(t('error'));
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('web_auth_hash');
+    setIsAuthenticated(false);
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current.connect();
+    }
   };
 
   const changeLanguage = async (lng) => {
@@ -457,6 +513,32 @@ function App() {
     toast.success(t('searchDeleted'));
   };
 
+  if (status?.authRequired && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-8 shadow-xl border relative">
+          <div className="flex flex-col items-center space-y-3 mb-6">
+            <img src={avitoLogo} alt="Avito Logo" className="h-12 w-auto object-contain" />
+            <h1 className="text-2xl font-bold tracking-tight">Avito<span className="text-primary">Parser</span></h1>
+            <p className="text-sm text-muted-foreground text-center">{t('enterPassword')}</p>
+          </div>
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <Input
+              label={t('password')}
+              type="password"
+              value={authPasswordInput}
+              onChange={(e) => { setAuthPasswordInput(e.target.value); setAuthError(''); }}
+              placeholder="••••••••"
+              required
+            />
+            {authError && <div className="text-xs text-destructive font-medium">{authError}</div>}
+            <Button type="submit" className="w-full">{t('login')}</Button>
+          </form>
+        </Card>
+      </div>
+    );
+  }
+
   if (!status || !config) return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
 
   const activeNotificationsCount = Object.values(config.notifications || {}).filter(n => n?.enabled).length;
@@ -480,9 +562,20 @@ function App() {
             <Server size={16} />
             <span>v{status?.version || '1.0.0'}</span>
           </div>
-          <div className={`flex items-center space-x-1 text-xs px-2 py-0.5 rounded-full border transition-colors ${isWsConnected ? 'bg-green-500/10 text-green-500 border-green-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`} title={isWsConnected ? "WebSocket Connected" : "HTTP Polling Active (Fallback)"}>
-            {isWsConnected ? <Wifi size={12} /> : <RefreshCw size={12} className="animate-spin" />}
-            <span>{isWsConnected ? 'WS' : 'Polling'}</span>
+          <div className="flex items-center space-x-2">
+            {status?.authRequired && isAuthenticated && (
+              <button
+                onClick={handleLogout}
+                className="p-1 text-muted-foreground hover:text-destructive rounded transition-colors"
+                title={t('logout')}
+              >
+                <LogOut size={16} />
+              </button>
+            )}
+            <div className={`flex items-center space-x-1 text-xs px-2 py-0.5 rounded-full border transition-colors ${isWsConnected ? 'bg-green-500/10 text-green-500 border-green-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`} title={isWsConnected ? "WebSocket Connected" : "HTTP Polling Active (Fallback)"}>
+              {isWsConnected ? <Wifi size={12} /> : <RefreshCw size={12} className="animate-spin" />}
+              <span>{isWsConnected ? 'WS' : 'Polling'}</span>
+            </div>
           </div>
         </div>
       </aside>

@@ -63,7 +63,12 @@ const resources = {
       "clearSentDeals": "Clear Sent History",
       "confirmClearSentTitle": "Clear Sent Deals History",
       "confirmClearSentMessage": "Are you sure you want to clear the history of sent deals? On the next check, all matching deals will be sent to notifications again.",
-      "sentDealsCleared": "Sent deals history cleared!"
+      "sentDealsCleared": "Sent deals history cleared!",
+      "login": "Login",
+      "password": "Password",
+      "enterPassword": "Enter password to access panel",
+      "invalidPassword": "Invalid password. Access denied.",
+      "logout": "Logout"
     }
   },
   ru: {
@@ -127,7 +132,12 @@ const resources = {
       "clearSentDeals": "Очистить историю отправленных",
       "confirmClearSentTitle": "Очистить историю отправленных объявлений",
       "confirmClearSentMessage": "Вы уверены, что хотите очистить историю отправленных объявлений? При следующей проверке все подходящие объявления будут отправлены в уведомления повторно.",
-      "sentDealsCleared": "История отправленных объявлений очищена!"
+      "sentDealsCleared": "История отправленных объявлений очищена!",
+      "login": "Войти",
+      "password": "Пароль",
+      "enterPassword": "Введите пароль для доступа к панели",
+      "invalidPassword": "Неверный пароль. Доступ запрещен.",
+      "logout": "Выйти"
     }
   }
 };
