@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "start": "node ./index.js"
+  },
+  "dependencies": {
+    "chalk": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "grammy": "^1.45.1",
+    "playwright": "^1.62.1",
+    "socks-proxy-agent": "^10.1.0"
+  }
+}
