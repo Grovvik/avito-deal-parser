@@ -24,6 +24,10 @@ class WebServer {
             cors: { origin: '*' }
         });
 
+        if (this.scheduler) {
+            this.scheduler.onStatusChange = () => this.broadcastStatus();
+        }
+
         this.setupMiddleware();
         this.setupRoutes();
         this.setupSocket();
@@ -34,6 +38,7 @@ class WebServer {
         return {
             version: pkg.version,
             isPollingEnabled: this.configManager.config.isPollingEnabled,
+            isPending: Boolean(this.scheduler?.isPending),
             totalSent: this.configManager.sentIds.size,
             telegramAdminId: process.env.TELEGRAM_ADMIN_ID || '',
             cookiesCount: Array.isArray(cookies) ? cookies.length : 0,

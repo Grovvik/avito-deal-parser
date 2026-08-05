@@ -558,13 +558,21 @@ function App() {
                   <div className="text-sm font-medium text-muted-foreground">{t('status')}</div>
                   <div className="mt-2 text-2xl font-bold flex items-center space-x-2">
                     <span className="relative flex h-3 w-3">
-                      {status.isPollingEnabled ? (
+                      {status.isPending ? (
+                        <><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span></>
+                      ) : status.isPollingEnabled ? (
                         <><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></>
                       ) : (
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                       )}
                     </span>
-                    <span>{status.isPollingEnabled ? t('active') : t('paused')}</span>
+                    <span>
+                      {status.isPending
+                        ? t('pending') || 'Pending'
+                        : status.isPollingEnabled
+                        ? t('active')
+                        : t('paused')}
+                    </span>
                   </div>
                 </Card>
 
@@ -601,8 +609,8 @@ function App() {
                 <Button onClick={togglePolling} variant={status.isPollingEnabled ? "destructive" : "primary"}>
                   {status.isPollingEnabled ? <><Pause className="mr-2 h-4 w-4" /> {t('pausePolling')}</> : <><Play className="mr-2 h-4 w-4" /> {t('startPolling')}</>}
                 </Button>
-                <Button onClick={runManualCheck} variant="outline">
-                  <Globe className="mr-2 h-4 w-4" /> {t('runCheck')}
+                <Button onClick={runManualCheck} variant="outline" disabled={status.isPending}>
+                  <Globe className={`mr-2 h-4 w-4 ${status.isPending ? 'animate-spin' : ''}`} /> {t('runCheck')}
                 </Button>
               </div>
 

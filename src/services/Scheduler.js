@@ -9,62 +9,77 @@ class Scheduler {
         this.notificationRegistry = notificationRegistry;
         this.analyzer = analyzer;
         this.timer = null;
+        this.isPending = false;
+        this.onStatusChange = null;
     }
 
     async runTask() {
-        this.logger.info('Starting scheduled check...');
-        const config = this.configManager.config;
-        const searches = config.searches || [];
-
-        if (config.scrapersOrder && config.scrapersOrder.length > 0) {
-            const allScrapers = this.scraperRegistry.getScrapers();
-            const orderedScrapers = [];
-            for (const id of config.scrapersOrder) {
-                const s = allScrapers.find(x => x.id === id);
-                if (s) orderedScrapers.push(s);
-            }
-            for (const s of allScrapers) {
-                if (!orderedScrapers.find(x => x.id === s.id)) {
-                    orderedScrapers.push(s);
-                }
-            }
-            this.scraperRegistry.scrapers = orderedScrapers;
+        if (this.isPending) {
+            this.logger.info('Check already in progress, skipping...');
+            return;
         }
 
-        for (let i = 0; i < searches.length; i++) {
-            const search = searches[i];
-            try {
-                const rawItems = await this.scraperRegistry.fetchItemsWithFallback(search.url, config.scrapersOrder);
+        this.isPending = true;
+        if (typeof this.onStatusChange === 'function') this.onStatusChange();
 
-                const deals = this.analyzer.analyze(rawItems, search.maxPrice, search.keywords || search);
+        try {
+            this.logger.info('Starting scheduled check...');
+            const config = this.configManager.config;
+            const searches = config.searches || [];
 
-                for (const item of deals) {
-                    if (!this.configManager.isItemSent(item.id)) {
-                        await this.notificationRegistry.broadcastDeal(item, item.price, search.url, config);
-
-                        this.configManager.markItemAsSent(item.id);
-
-                        this.dealsManager.addDeal({
-                            id: item.id,
-                            title: item.title,
-                            price: item.price,
-                            url: item.url,
-                            image: item.image,
-                            searchUrl: search.url
-                        });
+            if (config.scrapersOrder && config.scrapersOrder.length > 0) {
+                const allScrapers = this.scraperRegistry.getScrapers();
+                const orderedScrapers = [];
+                for (const id of config.scrapersOrder) {
+                    const s = allScrapers.find(x => x.id === id);
+                    if (s) orderedScrapers.push(s);
+                }
+                for (const s of allScrapers) {
+                    if (!orderedScrapers.find(x => x.id === s.id)) {
+                        orderedScrapers.push(s);
                     }
                 }
-            } catch (err) {
-                this.logger.error(`Error processing search URL [${search.url}]: ${err.message}`);
+                this.scraperRegistry.scrapers = orderedScrapers;
             }
 
-            if (i < searches.length - 1) {
-                const delayMs = Math.floor(Math.random() * 4000) + 2000;
-                this.logger.info(`Waiting ${(delayMs / 1000).toFixed(1)}s before fetching next search task...`);
-                await new Promise(resolve => setTimeout(resolve, delayMs));
+            for (let i = 0; i < searches.length; i++) {
+                const search = searches[i];
+                try {
+                    const rawItems = await this.scraperRegistry.fetchItemsWithFallback(search.url, config.scrapersOrder);
+
+                    const deals = this.analyzer.analyze(rawItems, search.maxPrice, search.keywords || search);
+
+                    for (const item of deals) {
+                        if (!this.configManager.isItemSent(item.id)) {
+                            await this.notificationRegistry.broadcastDeal(item, item.price, search.url, config);
+
+                            this.configManager.markItemAsSent(item.id);
+
+                            this.dealsManager.addDeal({
+                                id: item.id,
+                                title: item.title,
+                                price: item.price,
+                                url: item.url,
+                                image: item.image,
+                                searchUrl: search.url
+                            });
+                        }
+                    }
+                } catch (err) {
+                    this.logger.error(`Error processing search URL [${search.url}]: ${err.message}`);
+                }
+
+                if (i < searches.length - 1) {
+                    const delayMs = Math.floor(Math.random() * 4000) + 2000;
+                    this.logger.info(`Waiting ${(delayMs / 1000).toFixed(1)}s before fetching next search task...`);
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                }
             }
+            this.logger.info('Scheduled check finished.');
+        } finally {
+            this.isPending = false;
+            if (typeof this.onStatusChange === 'function') this.onStatusChange();
         }
-        this.logger.info('Scheduled check finished.');
     }
 
     async runManualCheck() {
