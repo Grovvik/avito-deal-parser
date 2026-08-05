@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie } from 'lucide-react';
+import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useTheme } from './hooks/useTheme';
 import Modal from './components/Modal';
@@ -52,6 +52,25 @@ const Input = ({ label, type = "text", value, onChange, placeholder, required = 
       className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
     />
   </div>
+);
+
+const Switch = ({ checked, onChange, disabled = false }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    disabled={disabled}
+    onClick={() => onChange(!checked)}
+    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+      checked ? 'bg-primary' : 'bg-muted-foreground/30'
+    }`}
+  >
+    <span
+      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out ${
+        checked ? 'translate-x-5' : 'translate-x-0'
+      }`}
+    />
+  </button>
 );
 
 // Custom SVG Analytics Chart
@@ -216,6 +235,11 @@ function App() {
   // Cookies Modal State
   const [cookiesModalOpen, setCookiesModalOpen] = useState(false);
   const [cookiesJsonText, setCookiesJsonText] = useState('');
+
+  // Notification Modal State
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+  const [editingProviderId, setEditingProviderId] = useState(null);
+  const [notificationForm, setNotificationForm] = useState({});
 
   const [isWsConnected, setIsWsConnected] = useState(false);
 
@@ -385,13 +409,42 @@ function App() {
   const handleNotificationToggle = async (providerId) => {
     const notifications = config.notifications || {};
     const provider = notifications[providerId] || {};
-    await saveConfig({
-      ...config,
-      notifications: {
-        ...notifications,
-        [providerId]: { ...provider, enabled: !provider.enabled }
+    const updatedNotifications = {
+      ...notifications,
+      [providerId]: { ...provider, enabled: !provider.enabled }
+    };
+    const newConfig = { ...config, notifications: updatedNotifications };
+    setConfig(newConfig);
+    await saveConfig(newConfig);
+  };
+
+  const openNotificationModal = (providerId) => {
+    setEditingProviderId(providerId);
+    const currentProviderConfig = config.notifications?.[providerId] || {};
+    setNotificationForm({ ...currentProviderConfig });
+    setNotificationModalOpen(true);
+  };
+
+  const saveNotificationModal = async (e) => {
+    e.preventDefault();
+    if (!editingProviderId) return;
+
+    const newNotifications = {
+      ...config.notifications,
+      [editingProviderId]: {
+        ...config.notifications?.[editingProviderId],
+        ...notificationForm
       }
-    });
+    };
+    const newConfig = { ...config, notifications: newNotifications };
+    setConfig(newConfig);
+    await saveConfig(newConfig);
+    setNotificationModalOpen(false);
+    toast.success(t('settingsSaved'));
+  };
+
+  const handleNotificationFormChange = (field, value) => {
+    setNotificationForm(prev => ({ ...prev, [field]: value }));
   };
 
   const handleNotificationChange = (providerId, field, value) => {
@@ -660,81 +713,35 @@ function App() {
                <Card>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold">{t('notifications')}</h2>
-                    <Button onClick={saveNotifications}>{t('save')}</Button>
                   </div>
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                      {status.notifications.map(p => {
-                       const isEnabled = config.notifications?.[p.id]?.enabled;
-                       const hasSubFields = isEnabled && (p.id === 'discord' || p.id === 'mqtt' || p.id === 'telegram');
+                       const isEnabled = !!config.notifications?.[p.id]?.enabled;
                        return (
-                        <div key={p.id} className="p-4 border rounded-lg bg-card">
-                           <div className={`flex items-center justify-between ${hasSubFields ? 'mb-4' : ''}`}>
-                              <div className="font-medium text-lg">{p.name}</div>
-                              <Button 
-                                 variant={isEnabled ? "primary" : "outline"}
-                                 onClick={() => handleNotificationToggle(p.id)}
-                              >
-                                 {isEnabled ? t('enabled') || 'Enabled' : t('disabled') || 'Disabled'}
-                              </Button>
-                           </div>
-                           
-                           {isEnabled && (
-                             <div className="mt-4 pt-4 border-t space-y-4">
-                               {p.id === 'discord' && (
-                                 <>
-                                   <Input 
-                                     label="Webhook URL" 
-                                     value={config.notifications?.discord?.webhookUrl || ''} 
-                                     onChange={e => handleNotificationChange('discord', 'webhookUrl', e.target.value)}
-                                     placeholder="https://discord.com/api/webhooks/..."
-                                   />
-                                   <Input 
-                                     label="Proxy URL (optional)" 
-                                     value={config.notifications?.discord?.proxyUrl || ''} 
-                                     onChange={e => handleNotificationChange('discord', 'proxyUrl', e.target.value)}
-                                     placeholder="e.g. http://127.0.0.1:8080 or socks5://..."
-                                   />
-                                 </>
-                               )}
-                               {p.id === 'mqtt' && (
-                                 <>
-                                   <Input 
-                                     label="Broker URL" 
-                                     value={config.notifications?.mqtt?.brokerUrl || ''} 
-                                     onChange={e => handleNotificationChange('mqtt', 'brokerUrl', e.target.value)}
-                                     placeholder="mqtt://localhost:1883"
-                                   />
-                                   <Input 
-                                     label="Topic" 
-                                     value={config.notifications?.mqtt?.topic || ''} 
-                                     onChange={e => handleNotificationChange('mqtt', 'topic', e.target.value)}
-                                     placeholder="avito/deals"
-                                   />
-                                   <div className="grid grid-cols-2 gap-4">
-                                     <Input 
-                                       label="Username (optional)" 
-                                       value={config.notifications?.mqtt?.username || ''} 
-                                       onChange={e => handleNotificationChange('mqtt', 'username', e.target.value)}
-                                     />
-                                     <Input 
-                                       label="Password (optional)" 
-                                       type="password"
-                                       value={config.notifications?.mqtt?.password || ''} 
-                                       onChange={e => handleNotificationChange('mqtt', 'password', e.target.value)}
-                                     />
-                                   </div>
-                                 </>
-                               )}
-                               {p.id === 'telegram' && (
-                                 <Input 
-                                   label="Chat ID" 
-                                   value={config.notifications?.telegram?.chatId ?? (status.telegramAdminId || '')} 
-                                   onChange={e => handleNotificationChange('telegram', 'chatId', e.target.value)}
-                                   placeholder={status.telegramAdminId ? `Default: ${status.telegramAdminId}` : "e.g. 123456789"}
-                                 />
-                               )}
+                        <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-muted/30 transition-colors">
+                           <div className="flex items-center space-x-3">
+                             <div className={`w-2.5 h-2.5 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+                             <div>
+                               <div className="font-medium text-base">{p.name}</div>
+                               <div className="text-xs text-muted-foreground">
+                                 {isEnabled ? t('enabled') : t('disabled')}
+                               </div>
                              </div>
-                           )}
+                           </div>
+                           <div className="flex items-center space-x-3">
+                             <Button 
+                               variant="outline" 
+                               size="sm" 
+                               onClick={() => openNotificationModal(p.id)}
+                             >
+                               <Sliders size={16} className="mr-1.5" />
+                               {t('manage')}
+                             </Button>
+                             <Switch 
+                               checked={isEnabled} 
+                               onChange={() => handleNotificationToggle(p.id)} 
+                             />
+                           </div>
                         </div>
                      )})}
                   </div>
@@ -818,6 +825,76 @@ function App() {
           </div>
           <div className="pt-4 flex justify-end space-x-2 border-t">
             <Button variant="ghost" onClick={() => setCookiesModalOpen(false)}>{t('cancel')}</Button>
+            <Button type="submit">{t('save')}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Notification Settings Modal */}
+      <Modal 
+        isOpen={notificationModalOpen} 
+        onClose={() => setNotificationModalOpen(false)} 
+        title={`${t('notifications')}: ${status.notifications?.find(p => p.id === editingProviderId)?.name || ''}`}
+      >
+        <form onSubmit={saveNotificationModal} className="space-y-4">
+          {editingProviderId === 'discord' && (
+            <>
+              <Input 
+                label="Webhook URL" 
+                value={notificationForm.webhookUrl || ''} 
+                onChange={e => handleNotificationFormChange('webhookUrl', e.target.value)}
+                placeholder="https://discord.com/api/webhooks/..."
+              />
+              <Input 
+                label="Proxy URL (optional)" 
+                value={notificationForm.proxyUrl || ''} 
+                onChange={e => handleNotificationFormChange('proxyUrl', e.target.value)}
+                placeholder="e.g. http://127.0.0.1:8080 or socks5://..."
+              />
+            </>
+          )}
+
+          {editingProviderId === 'mqtt' && (
+            <>
+              <Input 
+                label="Broker URL" 
+                value={notificationForm.brokerUrl || ''} 
+                onChange={e => handleNotificationFormChange('brokerUrl', e.target.value)}
+                placeholder="mqtt://localhost:1883"
+              />
+              <Input 
+                label="Topic" 
+                value={notificationForm.topic || ''} 
+                onChange={e => handleNotificationFormChange('topic', e.target.value)}
+                placeholder="avito/deals"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <Input 
+                  label="Username (optional)" 
+                  value={notificationForm.username || ''} 
+                  onChange={e => handleNotificationFormChange('username', e.target.value)}
+                />
+                <Input 
+                  label="Password (optional)" 
+                  type="password"
+                  value={notificationForm.password || ''} 
+                  onChange={e => handleNotificationFormChange('password', e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          {editingProviderId === 'telegram' && (
+            <Input 
+              label="Chat ID" 
+              value={notificationForm.chatId ?? (status.telegramAdminId || '')} 
+              onChange={e => handleNotificationFormChange('chatId', e.target.value)}
+              placeholder={status.telegramAdminId ? `Default: ${status.telegramAdminId}` : "e.g. 123456789"}
+            />
+          )}
+
+          <div className="pt-4 flex justify-end space-x-2 border-t">
+            <Button variant="ghost" onClick={() => setNotificationModalOpen(false)}>{t('cancel')}</Button>
             <Button type="submit">{t('save')}</Button>
           </div>
         </form>

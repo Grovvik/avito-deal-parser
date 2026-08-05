@@ -57,7 +57,8 @@ const resources = {
       "updateCookies": "Update Cookies",
       "cookiesSaved": "Cookies updated successfully!",
       "invalidJson": "Invalid JSON format!",
-      "cookiesPlaceholder": "Paste exported cookies JSON array here..."
+      "cookiesPlaceholder": "Paste exported cookies JSON array here...",
+      "manage": "Manage"
     }
   },
   ru: {
@@ -115,7 +116,8 @@ const resources = {
       "updateCookies": "Обновить куки",
       "cookiesSaved": "Куки успешно обновлены!",
       "invalidJson": "Неверный формат JSON!",
-      "cookiesPlaceholder": "Вставьте сюда экспортированный массив JSON с куки..."
+      "cookiesPlaceholder": "Вставьте сюда экспортированный массив JSON с куки...",
+      "manage": "Изменить"
     }
   }
 };
