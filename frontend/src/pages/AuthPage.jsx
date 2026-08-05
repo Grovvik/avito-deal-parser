@@ -6,8 +6,8 @@ import Button from '../components/ui/Button';
 
 const AuthPage = ({ t, handleLoginSubmit, authPasswordInput, setAuthPasswordInput, setAuthError, authError }) => {
   return (
-    <div className="min-h-screen bg-black text-foreground flex items-center justify-center p-4">
-      <div className="w-full max-w-md p-8 shadow-2xl border border-zinc-800 bg-zinc-950 rounded-2xl relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+      <div className="w-full max-w-md p-8 shadow-2xl border bg-card text-card-foreground rounded-2xl relative overflow-hidden">
         <div className="flex flex-col items-center space-y-3 mb-6">
           <div className="p-3 rounded-full bg-primary/10 border border-primary/20 mb-1">
             <Lock size={24} className="text-primary" />
@@ -24,7 +24,7 @@ const AuthPage = ({ t, handleLoginSubmit, authPasswordInput, setAuthPasswordInpu
             onChange={(e) => { setAuthPasswordInput(e.target.value); setAuthError(''); }}
             placeholder="••••••••"
             required
-            className="bg-black/50 border-zinc-800"
+            className="bg-background border-input"
           />
           {authError && (
             <div className="text-xs text-destructive font-medium bg-destructive/10 border border-destructive/20 rounded-md p-2.5 text-center">

@@ -122,7 +122,6 @@ function App() {
 
     socket.on('config_update', (newConfig) => {
       setConfig(newConfig);
-      setIsAuthenticated(true);
       if (newConfig.locale && newConfig.locale !== i18n.language) {
         i18n.changeLanguage(newConfig.locale);
       }
@@ -130,7 +129,6 @@ function App() {
 
     socket.on('deals_update', (newDeals) => {
       setDeals(newDeals);
-      setIsAuthenticated(true);
     });
 
     socket.on('auth_success', ({ passwordHash }) => {
@@ -199,7 +197,9 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('web_auth_hash');
     setIsAuthenticated(false);
+    setAuthError('');
     if (socketRef.current) {
+      socketRef.current.auth = {};
       socketRef.current.disconnect();
       socketRef.current.connect();
     }
