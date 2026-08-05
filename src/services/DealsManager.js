@@ -30,17 +30,15 @@ class DealsManager {
     }
 
     addDeal(deal) {
-        // Prepend new deal to the list
         this.deals.unshift({
             ...deal,
             sentAt: new Date().toISOString()
         });
-        
-        // Keep only the last 500 deals to prevent file from growing indefinitely
+
         if (this.deals.length > 500) {
             this.deals = this.deals.slice(0, 500);
         }
-        
+
         this.saveDeals();
         if (typeof this.onDealAdded === 'function') {
             this.onDealAdded(deal);

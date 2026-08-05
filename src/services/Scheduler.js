@@ -16,7 +16,6 @@ class Scheduler {
         const config = this.configManager.config;
         const searches = config.searches || [];
 
-        // Apply scraper ordering if defined in config
         if (config.scrapersOrder && config.scrapersOrder.length > 0) {
             const allScrapers = this.scraperRegistry.getScrapers();
             const orderedScrapers = [];
@@ -24,7 +23,6 @@ class Scheduler {
                 const s = allScrapers.find(x => x.id === id);
                 if (s) orderedScrapers.push(s);
             }
-            // Add any missing scrapers at the end
             for (const s of allScrapers) {
                 if (!orderedScrapers.find(x => x.id === s.id)) {
                     orderedScrapers.push(s);
@@ -33,22 +31,19 @@ class Scheduler {
             this.scraperRegistry.scrapers = orderedScrapers;
         }
 
-        for (const search of searches) {
+        for (let i = 0; i < searches.length; i++) {
+            const search = searches[i];
             try {
-                // Use fallback logic
-                const rawItems = await this.scraperRegistry.fetchItemsWithFallback(search.url);
+                const rawItems = await this.scraperRegistry.fetchItemsWithFallback(search.url, config.scrapersOrder);
 
-                const deals = this.analyzer.analyze(rawItems, search.maxPrice, search.keywords);
+                const deals = this.analyzer.analyze(rawItems, search.maxPrice, search.keywords || search);
 
                 for (const item of deals) {
                     if (!this.configManager.isItemSent(item.id)) {
-                        // Broadcast via registries
                         await this.notificationRegistry.broadcastDeal(item, item.price, search.url, config);
-                        
-                        // Mark as sent
+
                         this.configManager.markItemAsSent(item.id);
-                        
-                        // Add to deal history
+
                         this.dealsManager.addDeal({
                             id: item.id,
                             title: item.title,
@@ -61,6 +56,12 @@ class Scheduler {
                 }
             } catch (err) {
                 this.logger.error(`Error processing search URL [${search.url}]: ${err.message}`);
+            }
+
+            if (i < searches.length - 1) {
+                const delayMs = Math.floor(Math.random() * 4000) + 2000;
+                this.logger.info(`Waiting ${(delayMs / 1000).toFixed(1)}s before fetching next search task...`);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
             }
         }
         this.logger.info('Scheduled check finished.');

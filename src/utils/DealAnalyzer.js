@@ -27,10 +27,14 @@ class DealAnalyzer {
         }
 
         if (typeof keywordsConfig === 'object') {
+            const mandatoryRaw = keywordsConfig.mandatoryKeywords || keywordsConfig.mandatory || keywordsConfig.required || [];
+            const optionalRaw = keywordsConfig.optionalKeywords || keywordsConfig.optional || [];
+            const excludeRaw = keywordsConfig.excludeKeywords || keywordsConfig.exclude || keywordsConfig.negative || [];
+
             return {
-                mandatory: this.extractWords(keywordsConfig.mandatory || keywordsConfig.required || []),
-                optional: this.extractWords(keywordsConfig.optional || []),
-                exclude: this.extractWords(keywordsConfig.exclude || keywordsConfig.negative || [])
+                mandatory: this.extractWords(mandatoryRaw),
+                optional: this.extractWords(optionalRaw),
+                exclude: this.extractWords(excludeRaw)
             };
         }
 

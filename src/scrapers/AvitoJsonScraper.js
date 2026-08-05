@@ -162,8 +162,9 @@ class AvitoJsonScraper {
             }
 
             if (!jsonText) {
-                this.logger.error('Failed to extract JSON state. Blocked or Captcha.');
-                return [];
+                const msg = 'Failed to extract JSON state. Blocked or Captcha.';
+                this.logger.error(msg);
+                throw new Error(msg);
             }
 
             const stateData = JSON.parse(jsonText.trim());
@@ -172,7 +173,7 @@ class AvitoJsonScraper {
             return items;
         } catch (err) {
             this.logger.error(`Scraping error: ${err.message}`);
-            return [];
+            throw err;
         } finally {
             await browser.close();
         }

@@ -75,14 +75,12 @@ class UI {
         if (config.searches && config.searches.length > 0) {
             searchesStr = config.searches.map((s, i) => {
                 let words = '[No Keywords]';
-                if (Array.isArray(s.keywords)) {
-                    if (s.keywords.length) words = `[${s.keywords.join(' ')}]`;
-                } else if (s.keywords) {
-                    const m = s.keywords.mandatory?.length ? `Req: ${s.keywords.mandatory.join(', ')}` : '';
-                    const o = s.keywords.optional?.length ? `Opt: ${s.keywords.optional.join(', ')}` : '';
-                    const parts = [m, o].filter(Boolean);
-                    if (parts.length > 0) words = `[${parts.join(' | ')}]`;
-                }
+                const mandatory = s.mandatoryKeywords || s.keywords?.mandatory || (Array.isArray(s.keywords) ? s.keywords : []);
+                const optional = s.optionalKeywords || s.keywords?.optional || [];
+                const m = mandatory.length ? `Req: ${mandatory.join(', ')}` : '';
+                const o = optional.length ? `Opt: ${optional.join(', ')}` : '';
+                const parts = [m, o].filter(Boolean);
+                if (parts.length > 0) words = `[${parts.join(' | ')}]`;
                 return `${i + 1}. <a href="${s.url}">Link</a> | 💰 <b>≤ ${s.maxPrice} ₽</b> | ${this.escapeHtml(words)}`;
             }).join('\n');
         }
@@ -105,15 +103,14 @@ class UI {
         let reqWords = '<i>None</i>';
         let optWords = '<i>None</i>';
 
-        if (Array.isArray(search.keywords)) {
-            if (search.keywords.length) reqWords = search.keywords.map(w => `<code>${this.escapeHtml(w)}</code>`).join(' ');
-        } else if (search.keywords) {
-            if (search.keywords.mandatory?.length) {
-                reqWords = search.keywords.mandatory.map(w => `<code>${this.escapeHtml(w)}</code>`).join(' ');
-            }
-            if (search.keywords.optional?.length) {
-                optWords = search.keywords.optional.map(w => `<code>${this.escapeHtml(w)}</code>`).join(' ');
-            }
+        const mandatory = search.mandatoryKeywords || search.keywords?.mandatory || (Array.isArray(search.keywords) ? search.keywords : []);
+        const optional = search.optionalKeywords || search.keywords?.optional || [];
+
+        if (mandatory.length) {
+            reqWords = mandatory.map(w => `<code>${this.escapeHtml(w)}</code>`).join(' ');
+        }
+        if (optional.length) {
+            optWords = optional.map(w => `<code>${this.escapeHtml(w)}</code>`).join(' ');
         }
 
         return `✏️ <b>Editing Search Task #${index + 1}</b>\n\n` +

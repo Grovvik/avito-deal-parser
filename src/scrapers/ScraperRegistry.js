@@ -22,30 +22,44 @@ class ScraperRegistry {
     }
 
     /**
-     * Iterates through registered scrapers in order.
-     * Returns results from the first scraper that successfully fetches items without throwing an error.
+     * Iterates through registered scrapers in order (optionally sorted by scrapersOrder).
+     * Returns results from the first scraper that successfully fetches items (> 0 items).
      * @param {string} url Search URL
+     * @param {Array<string>} [scrapersOrder] Optional array of scraper IDs defining priority order
      * @returns {Promise<Array>} Array of raw items
      */
-    async fetchItemsWithFallback(url) {
+    async fetchItemsWithFallback(url, scrapersOrder = null) {
         if (this.scrapers.length === 0) {
             this.logger.error('No scrapers registered!');
             return [];
         }
 
-        for (const scraper of this.scrapers) {
+        let orderedScrapers = [...this.scrapers];
+        if (Array.isArray(scrapersOrder) && scrapersOrder.length > 0) {
+            orderedScrapers.sort((a, b) => {
+                const indexA = scrapersOrder.indexOf(a.id);
+                const indexB = scrapersOrder.indexOf(b.id);
+                const posA = indexA === -1 ? 999 : indexA;
+                const posB = indexB === -1 ? 999 : indexB;
+                return posA - posB;
+            });
+        }
+
+        for (const scraper of orderedScrapers) {
             try {
                 this.logger.info(`Attempting to fetch with scraper: ${scraper.name}`);
-                // Assuming all scrapers have a fetchRawItems(url) method
                 const items = await scraper.instance.fetchRawItems(url);
-                return items; // Success! Return items (even if empty, 0 results is a valid response)
+                if (Array.isArray(items) && items.length > 0) {
+                    return items;
+                }
+                this.logger.warn(`Scraper ${scraper.name} returned 0 items. Trying next fallback scraper...`);
             } catch (err) {
                 this.logger.warn(`Scraper ${scraper.name} failed: ${err.message}. Trying next (if any)...`);
             }
         }
 
-        this.logger.error('All scrapers failed for URL: ' + url);
-        throw new Error('All scrapers failed');
+        this.logger.warn('All scrapers finished for URL (no items returned or all failed): ' + url);
+        return [];
     }
 }
 
