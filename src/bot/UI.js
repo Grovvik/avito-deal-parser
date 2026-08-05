@@ -124,8 +124,8 @@ class UI {
     }
 
     static renderDealNotification(item, price, url) {
-        const location = item.geo?.formattedAddress || item.location?.name || item.location || 'Не указана';
-        const category = item.category?.name || item.category || 'Не указана';
+        const location = item.geo?.formattedAddress || item.location?.name || item.location || 'Not specified';
+        const category = item.category?.name || item.category || 'Not specified';
         const ratingInfo = item.rating?.score 
             ? `⭐️ ${item.rating.score} (${item.rating.summary || ''})` 
             : null;

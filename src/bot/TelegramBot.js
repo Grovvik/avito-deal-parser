@@ -366,7 +366,6 @@ class TelegramBot {
                 return;
             }
 
-            // --- ДОБАВЛЕНИЕ СВЯЗКИ (ADD SEARCH) ---
             if (state === 'awaiting_search_url') {
                 if (textInput.startsWith('http')) {
                     ctx.session.tempSearchUrl = textInput;
@@ -448,7 +447,6 @@ class TelegramBot {
                 return;
             }
 
-            // --- РЕДАКТИРОВАНИЕ ПАРАМЕТРОВ (EDIT SEARCH) ---
             const index = ctx.session.editingSearchIndex;
 
             if (state === 'editing_search_url') {
