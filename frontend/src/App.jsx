@@ -320,6 +320,7 @@ function App() {
   const [status, setStatus] = useState(null);
   const [config, setConfig] = useState(null);
   const [deals, setDeals] = useState([]);
+  const visibleDeals = useMemo(() => deals.filter(deal => !deal.hidden), [deals]);
 
   // Search Modal State
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -766,10 +767,10 @@ function App() {
 
           {activeTab === 'deals' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {deals.length === 0 ? (
+              {visibleDeals.length === 0 ? (
                 <div className="col-span-full py-12 text-center text-muted-foreground">{t('noDeals')}</div>
               ) : (
-                deals.map(deal => (
+                visibleDeals.map(deal => (
                   <Card key={deal.id} className="flex flex-col">
                     {deal.image && <img src={deal.image} alt={deal.title} className="w-full h-48 object-cover rounded-md mb-4" />}
                     <h3 className="font-semibold text-lg line-clamp-2 mb-2" title={deal.title}>{deal.title}</h3>

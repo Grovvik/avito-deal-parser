@@ -32,6 +32,7 @@ class DealsManager {
     addDeal(deal) {
         this.deals.unshift({
             ...deal,
+            hidden: false,
             sentAt: new Date().toISOString()
         });
 
@@ -53,10 +54,13 @@ class DealsManager {
     }
 
     deleteDeal(id) {
-        this.deals = this.deals.filter(d => String(d.id) !== String(id));
-        this.saveDeals();
-        if (typeof this.onDealsChanged === 'function') {
-            this.onDealsChanged(this.deals);
+        const deal = this.deals.find(d => String(d.id) === String(id));
+        if (deal) {
+            deal.hidden = true;
+            this.saveDeals();
+            if (typeof this.onDealsChanged === 'function') {
+                this.onDealsChanged(this.deals);
+            }
         }
     }
 

@@ -53,9 +53,9 @@ class Scheduler {
                         let expiredCount = 0;
 
                         for (const deal of currentDeals) {
-                            if (deal.searchUrl === search.url || deal.url === search.url) {
+                            if (!deal.hidden && (deal.searchUrl === search.url || deal.url === search.url)) {
                                 if (!rawIds.has(String(deal.id))) {
-                                    this.logger.info(`Deal ${deal.id} ("${deal.title}") is no longer active on Avito. Removing from deals...`);
+                                    this.logger.info(`Deal ${deal.id} ("${deal.title}") is no longer active on Avito. Marking hidden...`);
                                     this.dealsManager.deleteDeal(deal.id);
                                     expiredCount++;
                                 }
@@ -63,7 +63,7 @@ class Scheduler {
                         }
 
                         if (expiredCount > 0) {
-                            this.logger.info(`Removed ${expiredCount} expired deal(s) for search URL [${search.url}]`);
+                            this.logger.info(`Marked ${expiredCount} expired deal(s) as hidden for search URL [${search.url}]`);
                         }
                     }
 
