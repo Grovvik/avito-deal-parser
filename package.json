@@ -1,12 +1,19 @@
 {
+  "name": "avito-deal-parser",
+  "version": "2.0.1",
   "scripts": {
     "start": "node ./index.js"
   },
   "dependencies": {
     "chalk": "^6.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "grammy": "^1.45.1",
+    "https-proxy-agent": "^9.1.0",
+    "mqtt": "^5.15.2",
     "playwright": "^1.62.1",
+    "socket.io": "^4.8.3",
     "socks-proxy-agent": "^10.1.0"
   }
 }
