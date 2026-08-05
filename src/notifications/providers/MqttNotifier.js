@@ -44,7 +44,6 @@ class MqttNotifier {
                 price: price ?? item.price ?? 0,
                 url: item.url || '',
                 image: item.image || '',
-                isReserved: Boolean(item.isReserved),
                 category: item.category || '',
                 location: item.location || '',
                 searchUrl: url,
