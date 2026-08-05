@@ -56,6 +56,48 @@ class WebServer {
             socket.emit('config_update', this.configManager.config);
             socket.emit('deals_update', this.dealsManager.getDeals());
 
+            socket.on('run_check', () => {
+                this.logger.info(`WS action 'run_check' from ${socket.id}`);
+                this.scheduler.runManualCheck();
+                this.broadcastStatus();
+            });
+
+            socket.on('toggle_polling', () => {
+                this.logger.info(`WS action 'toggle_polling' from ${socket.id}`);
+                const isEnabled = !this.configManager.config.isPollingEnabled;
+                this.configManager.saveConfig({ isPollingEnabled: isEnabled });
+                this.scheduler.restart();
+                this.broadcastConfig();
+                this.broadcastStatus();
+            });
+
+            socket.on('save_config', (newConfig) => {
+                this.logger.info(`WS action 'save_config' from ${socket.id}`);
+                this.configManager.saveConfig(newConfig);
+                this.scheduler.restart();
+                this.broadcastConfig();
+                this.broadcastStatus();
+            });
+
+            socket.on('delete_deal', (dealId) => {
+                this.logger.info(`WS action 'delete_deal' (${dealId}) from ${socket.id}`);
+                this.dealsManager.deleteDeal(dealId);
+                this.broadcastDeals();
+                this.broadcastStatus();
+            });
+
+            socket.on('save_cookies', (cookies) => {
+                this.logger.info(`WS action 'save_cookies' from ${socket.id}`);
+                this.configManager.saveCookies(cookies);
+                this.broadcastStatus();
+            });
+
+            socket.on('get_cookies', (callback) => {
+                if (typeof callback === 'function') {
+                    callback(this.configManager.getCookies());
+                }
+            });
+
             socket.on('disconnect', () => {
                 this.logger.info(`Client disconnected: ${socket.id}`);
             });

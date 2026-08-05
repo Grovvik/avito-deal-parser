@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders } from 'lucide-react';
 import { io } from 'socket.io-client';
@@ -242,73 +242,44 @@ function App() {
   const [notificationForm, setNotificationForm] = useState({});
 
   const [isWsConnected, setIsWsConnected] = useState(false);
+  const socketRef = useRef(null);
 
-  const openCookiesModal = async () => {
-    try {
-      const res = await fetch('/api/cookies');
-      const data = await res.json();
-      setCookiesJsonText(JSON.stringify(data, null, 2));
-    } catch (e) {
-      setCookiesJsonText('[]');
+  const openCookiesModal = () => {
+    if (socketRef.current) {
+      socketRef.current.emit('get_cookies', (data) => {
+        setCookiesJsonText(JSON.stringify(data || [], null, 2));
+      });
     }
     setCookiesModalOpen(true);
   };
 
-  const handleIntervalChange = async (minutes) => {
+  const handleIntervalChange = (minutes) => {
     if (isNaN(minutes) || minutes < 1) return;
     const newConfig = { ...config, intervalMinutes: minutes };
     setConfig(newConfig);
-    await saveConfig(newConfig);
+    saveConfig(newConfig);
   };
 
-  const handleSaveCookies = async (e) => {
+  const handleSaveCookies = (e) => {
     e.preventDefault();
     try {
       const parsed = JSON.parse(cookiesJsonText);
-      const res = await fetch('/api/cookies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookies: parsed })
-      });
-      if (!res.ok) throw new Error('Save failed');
+      socketRef.current?.emit('save_cookies', parsed);
       setCookiesModalOpen(false);
       toast.success(t('cookiesSaved'));
-      fetchData();
     } catch (e) {
       toast.error(t('invalidJson'));
     }
   };
 
-  const fetchData = async () => {
-    try {
-      const [statusRes, configRes, dealsRes] = await Promise.all([
-        fetch('/api/status'),
-        fetch('/api/config'),
-        fetch('/api/deals')
-      ]);
-      setStatus(await statusRes.json());
-      
-      const configData = await configRes.json();
-      setConfig(configData);
-      if (configData.locale && configData.locale !== i18n.language) {
-        i18n.changeLanguage(configData.locale);
-      }
-
-      setDeals(await dealsRes.json());
-    } catch (e) {
-      console.error("Failed to fetch data", e);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
-
     const socket = io({
       path: '/ws',
       transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnectionDelay: 2000
     });
+    socketRef.current = socket;
 
     socket.on('connect', () => {
       setIsWsConnected(true);
@@ -342,57 +313,25 @@ function App() {
     };
   }, []);
 
-  // Fallback to HTTP polling if WS is disconnected
-  useEffect(() => {
-    if (isWsConnected) return;
-
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, [isWsConnected]);
-
-  const saveConfig = async (newConfig) => {
-    try {
-      await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newConfig)
-      });
-      fetchData();
-    } catch (e) {
-      toast.error("Failed to save configuration");
-    }
+  const saveConfig = (newConfig) => {
+    socketRef.current?.emit('save_config', newConfig);
   };
 
-  const togglePolling = async () => {
-    try {
-      await fetch('/api/action/toggle-polling', { method: 'POST' });
-      fetchData();
-      toast.info(status.isPollingEnabled ? t('paused') : t('active'));
-    } catch (e) {
-      toast.error("Action failed");
-    }
+  const togglePolling = () => {
+    socketRef.current?.emit('toggle_polling');
+    toast.info(status?.isPollingEnabled ? t('paused') : t('active'));
   };
 
-  const runManualCheck = async () => {
-    try {
-      await fetch('/api/action/run-check', { method: 'POST' });
-      toast.success(t('manualCheckStarted'));
-    } catch (e) {
-      toast.error("Failed to start check");
-    }
+  const runManualCheck = () => {
+    socketRef.current?.emit('run_check');
+    toast.success(t('manualCheckStarted'));
   };
 
-  const confirmDeleteDeal = async () => {
+  const confirmDeleteDeal = () => {
     if (!deleteDealId) return;
-    try {
-      await fetch(`/api/deals/${deleteDealId}`, { method: 'DELETE' });
-      fetchData();
-      toast.success(t('dealDeleted'));
-    } catch (e) {
-      toast.error("Failed to delete deal");
-    } finally {
-      setDeleteDealId(null);
-    }
+    socketRef.current?.emit('delete_deal', deleteDealId);
+    toast.success(t('dealDeleted'));
+    setDeleteDealId(null);
   };
 
   const changeLanguage = async (lng) => {
