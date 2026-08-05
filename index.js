@@ -34,7 +34,7 @@ const analyzer = new DealAnalyzer();
 // Setup Scraper Registry
 const scraperRegistry = new ScraperRegistry();
 scraperRegistry.register('json', 'Avito JSON Scraper', new AvitoJsonScraper(configManager.getCookiesFilePath(), AVITO_PROXY));
-scraperRegistry.register('html', 'Avito HTML Scraper', new AvitoHtmlScraper(AVITO_PROXY));
+scraperRegistry.register('html', 'Avito HTML Scraper', new AvitoHtmlScraper(AVITO_PROXY, configManager.getCookiesFilePath()));
 
 // Setup Notification Registry
 const notificationRegistry = new NotificationRegistry();

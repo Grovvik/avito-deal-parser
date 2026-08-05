@@ -34,6 +34,14 @@ class AvitoHtmlScraper {
         }
     }
 
+    async saveCookies(context) {
+        if (!this.cookiesFilePath) return;
+        try {
+            const freshState = await context.storageState();
+            fs.writeFileSync(this.cookiesFilePath, JSON.stringify(freshState.cookies, null, 2));
+        } catch (err) {}
+    }
+
     async fetchRawItems(targetUrl) {
         const storageState = this.loadCookies();
         const launchOptions = { headless: true };
@@ -113,6 +121,7 @@ class AvitoHtmlScraper {
             });
 
             this.logger.info(`Successfully scraped ${items.length} items from HTML.`);
+            await this.saveCookies(context);
             return items;
         } catch (err) {
             this.logger.error(`HTML Scraping error: ${err.message}`);
