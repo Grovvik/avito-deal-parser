@@ -39,6 +39,9 @@ class WebServer {
         if (this.scheduler) {
             this.scheduler.onStatusChange = () => this.broadcastStatus();
         }
+        if (this.dealsManager) {
+            this.dealsManager.onDealsChanged = () => this.broadcastDeals();
+        }
 
         this.setupMiddleware();
         this.setupRoutes();
@@ -146,6 +149,7 @@ class WebServer {
             socket.on('clear_sent_deals', checkAuth(() => {
                 this.logger.info(`WS action 'clear_sent_deals' from ${socket.id}`);
                 this.configManager.clearSentIds();
+                this.dealsManager.clearDeals();
                 this.broadcastStatus();
             }));
 
@@ -255,6 +259,7 @@ class WebServer {
 
         api.post('/action/clear-sent-deals', checkRestAuth, (req, res) => {
             this.configManager.clearSentIds();
+            this.dealsManager.clearDeals();
             this.broadcastStatus();
             res.json({ success: true, message: 'Sent deals cleared' });
         });

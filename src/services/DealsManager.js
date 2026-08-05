@@ -43,6 +43,9 @@ class DealsManager {
         if (typeof this.onDealAdded === 'function') {
             this.onDealAdded(deal);
         }
+        if (typeof this.onDealsChanged === 'function') {
+            this.onDealsChanged(this.deals);
+        }
     }
 
     getDeals() {
@@ -52,6 +55,18 @@ class DealsManager {
     deleteDeal(id) {
         this.deals = this.deals.filter(d => String(d.id) !== String(id));
         this.saveDeals();
+        if (typeof this.onDealsChanged === 'function') {
+            this.onDealsChanged(this.deals);
+        }
+    }
+
+    clearDeals() {
+        this.deals = [];
+        this.saveDeals();
+        this.logger.info('Deals list cleared.');
+        if (typeof this.onDealsChanged === 'function') {
+            this.onDealsChanged(this.deals);
+        }
     }
 }
 

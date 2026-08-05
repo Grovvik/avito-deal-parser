@@ -47,6 +47,26 @@ class Scheduler {
                 try {
                     const rawItems = await this.scraperRegistry.fetchItemsWithFallback(search.url, config.scrapersOrder);
 
+                    if (Array.isArray(rawItems) && rawItems.length > 0) {
+                        const rawIds = new Set(rawItems.map(item => String(item.id)));
+                        const currentDeals = [...this.dealsManager.getDeals()];
+                        let expiredCount = 0;
+
+                        for (const deal of currentDeals) {
+                            if (deal.searchUrl === search.url || deal.url === search.url) {
+                                if (!rawIds.has(String(deal.id))) {
+                                    this.logger.info(`Deal ${deal.id} ("${deal.title}") is no longer active on Avito. Removing from deals...`);
+                                    this.dealsManager.deleteDeal(deal.id);
+                                    expiredCount++;
+                                }
+                            }
+                        }
+
+                        if (expiredCount > 0) {
+                            this.logger.info(`Removed ${expiredCount} expired deal(s) for search URL [${search.url}]`);
+                        }
+                    }
+
                     const deals = this.analyzer.analyze(rawItems, search.maxPrice, search.keywords || search);
 
                     for (const item of deals) {
