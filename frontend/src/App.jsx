@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders, RotateCcw, LogOut, Lock } from 'lucide-react';
+import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders, RotateCcw, LogOut, Lock, Menu, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useTheme } from './hooks/useTheme';
 import Modal from './components/Modal';
@@ -304,7 +304,7 @@ const DealsAnalyticsChart = ({ deals, t }) => {
             }}
           >
             <div>{hoveredPoint.label}</div>
-            <div className="text-primary font-semibold">{hoveredPoint.count} deals</div>
+            <div className="text-primary font-semibold">{hoveredPoint.count} {t('dealsCount')}</div>
           </div>
         )}
       </div>
@@ -320,6 +320,7 @@ function App() {
   const [status, setStatus] = useState(null);
   const [config, setConfig] = useState(null);
   const [deals, setDeals] = useState([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const visibleDeals = useMemo(() => deals.filter(deal => !deal.hidden), [deals]);
 
   // Search Modal State
@@ -646,23 +647,49 @@ function App() {
     );
   }
 
-  if (!status || !config) return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
+  if (!status || !config) return <div className="min-h-screen bg-background flex items-center justify-center">{t('loading')}</div>;
 
   const activeNotificationsCount = Object.values(config.notifications || {}).filter(n => n?.enabled).length;
 
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
+      {/* Mobile Overlay Backdrop */}
+      <div
+        className={`fixed inset-0 bg-black/60 backdrop-blur-md z-40 md:hidden transition-all duration-300 ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
       {/* Sidebar */}
-      <aside className="w-64 border-r bg-card flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b font-semibold text-xl tracking-tight space-x-3">
-          <img src={avitoLogo} alt="Avito Logo" className="h-7 w-auto object-contain" />
-          <span>Avito<span className="text-primary">Parser</span></span>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r bg-card flex flex-col transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="h-16 flex items-center justify-between px-6 border-b font-semibold text-xl tracking-tight">
+          <div className="flex items-center space-x-3">
+            <img src={avitoLogo} alt="Avito Logo" className="h-7 w-auto object-contain" />
+            <span>Avito<span className="text-primary">Parser</span></span>
+          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground md:hidden"
+            aria-label={t('closeMenu')}
+          >
+            <X size={20} />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          <SidebarItem icon={LayoutDashboard} label={t('dashboard')} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <SidebarItem icon={List} label={t('deals')} active={activeTab === 'deals'} onClick={() => setActiveTab('deals')} />
-          <SidebarItem icon={Search} label={t('searches')} active={activeTab === 'searches'} onClick={() => setActiveTab('searches')} />
-          <SidebarItem icon={Settings} label={t('settings')} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+          <SidebarItem icon={LayoutDashboard} label={t('dashboard')} active={activeTab === 'dashboard'} onClick={() => handleTabClick('dashboard')} />
+          <SidebarItem icon={List} label={t('deals')} active={activeTab === 'deals'} onClick={() => handleTabClick('deals')} />
+          <SidebarItem icon={Search} label={t('searches')} active={activeTab === 'searches'} onClick={() => handleTabClick('searches')} />
+          <SidebarItem icon={Settings} label={t('settings')} active={activeTab === 'settings'} onClick={() => handleTabClick('settings')} />
         </div>
         <div className="p-4 border-t text-sm text-muted-foreground flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -679,7 +706,7 @@ function App() {
                 <LogOut size={16} />
               </button>
             )}
-            <div className={`flex items-center space-x-1 text-xs px-2 py-0.5 rounded-full border transition-colors ${isWsConnected ? 'bg-green-500/10 text-green-500 border-green-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`} title={isWsConnected ? "WebSocket Connected" : "HTTP Polling Active (Fallback)"}>
+            <div className={`flex items-center space-x-1 text-xs px-2 py-0.5 rounded-full border transition-colors ${isWsConnected ? 'bg-green-500/10 text-green-500 border-green-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`} title={isWsConnected ? t('wsConnected') : t('pollingFallback')}>
               {isWsConnected ? <Wifi size={12} /> : <RefreshCw size={12} className="animate-spin" />}
               <span>{isWsConnected ? 'WS' : 'Polling'}</span>
             </div>
@@ -688,11 +715,26 @@ function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8 bg-muted/30 relative">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-muted/30 relative flex flex-col min-w-0">
+        {/* Mobile Header Bar */}
+        <div className="flex items-center justify-between mb-4 md:hidden pb-3 border-b">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg border bg-card text-foreground shadow-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label={t('openNavigation')}
+          >
+            <Menu size={22} />
+          </button>
+          <div className="flex items-center space-x-2 font-semibold text-lg">
+            <img src={avitoLogo} alt="Avito Logo" className="h-6 w-auto object-contain" />
+            <span>Avito<span className="text-primary">Parser</span></span>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto space-y-8 w-full">
 
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">{t(activeTab)}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t(activeTab)}</h1>
           </div>
 
           {activeTab === 'dashboard' && (
@@ -776,7 +818,7 @@ function App() {
                     <h3 className="font-semibold text-lg line-clamp-2 mb-2" title={deal.title}>{deal.title}</h3>
                     <div className="text-2xl font-semibold text-primary mb-4">{deal.price} ₽</div>
                     <div className="mt-auto pt-4 flex items-center justify-between border-t">
-                      <a href={deal.url} target="_blank" rel="noreferrer" className="text-sm text-blue-500 hover:underline">Avito Link</a>
+                      <a href={deal.url} target="_blank" rel="noreferrer" className="text-sm text-blue-500 hover:underline">{t('avitoLink')}</a>
                       <Button variant="ghost" className="text-destructive h-8 px-2" onClick={() => setDeleteDealId(deal.id)}>
                         <Trash2 size={16} />
                       </Button>
@@ -791,11 +833,11 @@ function App() {
             <Card>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold">Active Searches</h2>
+                  <h2 className="text-xl font-semibold">{t('activeSearches')}</h2>
                   <Button onClick={() => openSearchModal(null)}>{t('addSearch')}</Button>
                 </div>
                 {config.searches.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No searches configured.</p>
+                  <p className="text-muted-foreground text-sm">{t('noSearches')}</p>
                 ) : (
                   <div className="space-y-4">
                     {config.searches.map((s, i) => (
@@ -803,12 +845,12 @@ function App() {
                         <div className="flex-1 overflow-hidden mr-4">
                           <div className="font-medium truncate" title={s.url}>{s.url}</div>
                           <div className="text-sm text-muted-foreground mt-1 flex gap-4">
-                            {s.maxPrice && <span>Max: {s.maxPrice} ₽</span>}
-                            {s.mandatoryKeywords?.length > 0 && <span>Must have: {s.mandatoryKeywords.join(', ')}</span>}
+                            {s.maxPrice && <span>{t('maxPriceShort')}: {s.maxPrice} ₽</span>}
+                            {s.mandatoryKeywords?.length > 0 && <span>{t('mustHave')}: {s.mandatoryKeywords.join(', ')}</span>}
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => openSearchModal(i)}>Edit</Button>
+                          <Button variant="outline" size="sm" onClick={() => openSearchModal(i)}>{t('edit')}</Button>
                           <Button variant="destructive" size="sm" onClick={() => setDeleteSearchIdx(i)}><Trash2 size={16} /></Button>
                         </div>
                       </div>
@@ -822,10 +864,10 @@ function App() {
           {activeTab === 'settings' && (
             <div className="space-y-6">
               <Card>
-                <h2 className="text-xl font-semibold mb-4">General Settings</h2>
+                <h2 className="text-xl font-semibold mb-4">{t('generalSettings')}</h2>
                 <div className="flex flex-wrap items-center gap-6">
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">Theme:</span>
+                    <span className="text-sm font-medium">{t('theme')}:</span>
                     <Button variant="outline" size="icon" onClick={toggleTheme}>
                       {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                     </Button>
@@ -856,7 +898,7 @@ function App() {
                     <div className="flex items-center space-x-2">
                       <Cookie size={18} className="text-muted-foreground" />
                       <span className="text-sm font-medium">{t('cookies')}:</span>
-                      <span className="text-xs text-muted-foreground font-mono">({status.cookiesCount || 0} items)</span>
+                      <span className="text-xs text-muted-foreground font-mono">({status.cookiesCount || 0} {t('items')})</span>
                     </div>
                     <Button variant="outline" size="sm" onClick={openCookiesModal}>
                       {t('updateCookies')}
@@ -909,7 +951,7 @@ function App() {
       </main>
 
       {/* Search Modal */}
-      <Modal isOpen={searchModalOpen} onClose={() => setSearchModalOpen(false)} title={editingSearchIndex !== null ? "Edit Search" : t('addSearch')}>
+      <Modal isOpen={searchModalOpen} onClose={() => setSearchModalOpen(false)} title={editingSearchIndex !== null ? t('editSearch') : t('addSearch')}>
         <form onSubmit={saveSearch} className="space-y-4">
           <Input
             label={t('url')}
@@ -923,19 +965,19 @@ function App() {
             type="number"
             value={searchForm.maxPrice}
             onChange={e => setSearchForm({ ...searchForm, maxPrice: e.target.value })}
-            placeholder="e.g. 50000"
+            placeholder={t('maxPricePlaceholder')}
           />
           <Input
             label={t('mandatoryKeywords')}
             value={searchForm.mandatoryKeywords}
             onChange={e => setSearchForm({ ...searchForm, mandatoryKeywords: e.target.value })}
-            placeholder="e.g. iphone, 13, pro"
+            placeholder={t('mandatoryKwPlaceholder')}
           />
           <Input
             label={t('optionalKeywords')}
             value={searchForm.optionalKeywords}
             onChange={e => setSearchForm({ ...searchForm, optionalKeywords: e.target.value })}
-            placeholder="e.g. black, 256gb"
+            placeholder={t('optionalKwPlaceholder')}
           />
           <div className="pt-4 flex justify-end space-x-2 border-t">
             <Button variant="ghost" onClick={() => setSearchModalOpen(false)}>{t('cancel')}</Button>
@@ -970,7 +1012,7 @@ function App() {
       <Modal isOpen={cookiesModalOpen} onClose={() => setCookiesModalOpen(false)} title={t('updateCookies')}>
         <form onSubmit={handleSaveCookies} className="space-y-4">
           <div className="flex flex-col space-y-1.5">
-            <label className="text-sm font-medium">Cookies JSON (Array)</label>
+            <label className="text-sm font-medium">{t('cookiesJsonLabel')}</label>
             <textarea
               value={cookiesJsonText}
               onChange={e => setCookiesJsonText(e.target.value)}
@@ -1002,7 +1044,7 @@ function App() {
                 placeholder="https://discord.com/api/webhooks/..."
               />
               <Input
-                label="Proxy URL (optional)"
+                label={t('proxyUrlOptional')}
                 value={notificationForm.proxyUrl || ''}
                 onChange={e => handleNotificationFormChange('proxyUrl', e.target.value)}
                 placeholder="e.g. http://127.0.0.1:8080 or socks5://..."
@@ -1026,12 +1068,12 @@ function App() {
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input
-                  label="Username (optional)"
+                  label={t('usernameOptional')}
                   value={notificationForm.username || ''}
                   onChange={e => handleNotificationFormChange('username', e.target.value)}
                 />
                 <Input
-                  label="Password (optional)"
+                  label={t('passwordOptional')}
                   type="password"
                   value={notificationForm.password || ''}
                   onChange={e => handleNotificationFormChange('password', e.target.value)}
@@ -1045,7 +1087,7 @@ function App() {
               label="Chat ID"
               value={notificationForm.chatId ?? (status.telegramAdminId || '')}
               onChange={e => handleNotificationFormChange('chatId', e.target.value)}
-              placeholder={status.telegramAdminId ? `Default: ${status.telegramAdminId}` : "e.g. 123456789"}
+              placeholder={status.telegramAdminId ? `${t('default')}: ${status.telegramAdminId}` : t('chatIdPlaceholder')}
             />
           )}
 
