@@ -140,7 +140,7 @@ class UI {
                `💰 <b>${i18n.t('price')}:</b> <code>${price} ₽</code>\n` +
                `🆔 <b>ID:</b> <code>${item.id}</code>\n\n` +
                `${infoBlock}\n\n` +
-               `🔗 <a href="${url}">Open on Avito</a>`;
+               `🔗 <a href="${item.url || url}">Open on Avito</a>`;
     }
 }
 
