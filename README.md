@@ -1,5 +1,7 @@
 # Avito Deal Parser
 
+[Прочитать на Русском](README.ru.md)
+
 A powerful monitoring system for Avito listings featuring an extensible architecture for scrapers, multiple notification channels, and a modern React web dashboard. It uses Playwright to parse both JSON state and HTML of search results, filtering items by price, keywords, and item type.
 
 [Features](#features) • [Configuration](#configuration) • [Web Panel](#web-panel) • [Installation](#installation) • [Deployment](#deployment)
