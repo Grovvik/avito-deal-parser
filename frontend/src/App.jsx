@@ -1,316 +1,28 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders, RotateCcw, LogOut, Lock, Menu, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useTheme } from './hooks/useTheme';
+
+// Modals & UI
 import Modal from './components/Modal';
 import ConfirmModal from './components/ConfirmModal';
 import { useToast } from './components/Toast';
-import avitoLogo from './assets/avito.svg';
+import Input from './components/ui/Input';
+import Button from './components/ui/Button';
 
-function sha256Pure(ascii) {
-  const mathPow = Math.pow;
-  const maxWord = mathPow(2, 32);
-  const words = [];
-  const asciiBitLength = ascii.length * 8;
+// Layout
+import Sidebar from './components/layout/Sidebar';
+import MobileHeader from './components/layout/MobileHeader';
 
-  let hash = [];
-  let k = [];
-  let primeCounter = 0;
+// Pages
+import AuthPage from './pages/AuthPage';
+import DashboardPage from './pages/DashboardPage';
+import DealsPage from './pages/DealsPage';
+import SearchesPage from './pages/SearchesPage';
+import SettingsPage from './pages/SettingsPage';
 
-  const isPrime = (n) => {
-    for (let factor = 2; factor * factor <= n; factor++) {
-      if (n % factor === 0) return false;
-    }
-    return true;
-  };
-
-  let candidate = 2;
-  while (primeCounter < 64) {
-    if (isPrime(candidate)) {
-      if (primeCounter < 8) {
-        hash[primeCounter] = (mathPow(candidate, 1/2) * maxWord) | 0;
-      }
-      k[primeCounter] = (mathPow(candidate, 1/3) * maxWord) | 0;
-      primeCounter++;
-    }
-    candidate++;
-  }
-
-  ascii += '\x80';
-  while (ascii.length % 64 !== 56) ascii += '\x00';
-  for (let i = 0; i < ascii.length; i++) {
-    const j = ascii.charCodeAt(i);
-    words[i >> 2] |= j << ((3 - i % 4) * 8);
-  }
-  words[words.length] = (asciiBitLength / maxWord) | 0;
-  words[words.length] = asciiBitLength;
-
-  let h0 = hash[0], h1 = hash[1], h2 = hash[2], h3 = hash[3];
-  let h4 = hash[4], h5 = hash[5], h6 = hash[6], h7 = hash[7];
-
-  for (let j = 0; j < words.length; j += 16) {
-    const w = words.slice(j, j + 16);
-    for (let i = 16; i < 64; i++) {
-      const w15 = w[i - 15], w2 = w[i - 2];
-      const s0 = ((w15 >>> 7) | (w15 << 25)) ^ ((w15 >>> 18) | (w15 << 14)) ^ (w15 >>> 3);
-      const s1 = ((w2 >>> 17) | (w2 << 15)) ^ ((w2 >>> 19) | (w2 << 13)) ^ (w2 >>> 10);
-      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
-    }
-
-    let a = h0, e = h4;
-    let b = h1, c = h2, d = h3, f = h5, g = h6, h = h7;
-
-    for (let i = 0; i < 64; i++) {
-      const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
-      const ch = (e & f) ^ (~e & g);
-      const temp1 = (h + S1 + ch + k[i] + w[i]) | 0;
-      const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
-      const maj = (a & b) ^ (a & c) ^ (b & c);
-      const temp2 = (S0 + maj) | 0;
-
-      h = g;
-      g = f;
-      f = e;
-      e = (d + temp1) | 0;
-      d = c;
-      c = b;
-      b = a;
-      a = (temp1 + temp2) | 0;
-    }
-
-    h0 = (h0 + a) | 0;
-    h1 = (h1 + b) | 0;
-    h2 = (h2 + c) | 0;
-    h3 = (h3 + d) | 0;
-    h4 = (h4 + e) | 0;
-    h5 = (h5 + f) | 0;
-    h6 = (h6 + g) | 0;
-    h7 = (h7 + h) | 0;
-  }
-
-  return [h0, h1, h2, h3, h4, h5, h6, h7].map(v => {
-    let hex = (v >>> 0).toString(16);
-    while (hex.length < 8) hex = '0' + hex;
-    return hex;
-  }).join('');
-}
-
-const hashPassword = async (pwd) => {
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle && window.crypto.subtle.digest) {
-    try {
-      const msgBuffer = new TextEncoder().encode(pwd);
-      const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    } catch (e) {}
-  }
-  return sha256Pure(pwd);
-};
-
-const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 ${active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
-  >
-    <Icon size={20} />
-    <span className="font-medium">{label}</span>
-  </button>
-);
-
-const Card = ({ children, className = "" }) => (
-  <div className={`bg-card text-card-foreground rounded-xl border shadow-sm p-6 ${className}`}>
-    {children}
-  </div>
-);
-
-const Button = ({ children, onClick, variant = 'primary', size = 'default', className = "", type = "button" }) => {
-  const base = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none ring-offset-background";
-  const variants = {
-    primary: "bg-primary text-primary-foreground hover:bg-primary/90",
-    destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-    outline: "border border-input hover:bg-accent hover:text-accent-foreground",
-    ghost: "hover:bg-accent hover:text-accent-foreground"
-  };
-  const sizes = {
-    default: "h-10 py-2 px-4",
-    sm: "h-9 px-3 rounded-md",
-    icon: "h-10 w-10"
-  };
-  return <button type={type} onClick={onClick} className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}>{children}</button>;
-};
-
-const Input = ({ label, type = "text", value, onChange, placeholder, required = false, className = "" }) => (
-  <div className={`flex flex-col space-y-1.5 ${className}`}>
-    {label && <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{label}</label>}
-    <input
-      type={type}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      required={required}
-      className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-    />
-  </div>
-);
-
-const Switch = ({ checked, onChange, disabled = false }) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={checked}
-    disabled={disabled}
-    onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${checked ? 'bg-primary' : 'bg-muted-foreground/30'
-      }`}
-  >
-    <span
-      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out ${checked ? 'translate-x-5' : 'translate-x-0'
-        }`}
-    />
-  </button>
-);
-
-// Custom SVG Analytics Chart
-const DealsAnalyticsChart = ({ deals, t }) => {
-  const [range, setRange] = useState('hourly'); // 'hourly' | 'daily' | 'weekly'
-  const [hoveredPoint, setHoveredPoint] = useState(null);
-
-  const chartData = useMemo(() => {
-    const now = new Date();
-    const data = [];
-
-    if (range === 'hourly') {
-      for (let i = 23; i >= 0; i--) {
-        const d = new Date(now.getTime() - i * 60 * 60 * 1000);
-        const label = `${String(d.getHours()).padStart(2, '0')}:00`;
-        const count = deals.filter(deal => {
-          if (!deal.sentAt) return false;
-          const tDate = new Date(deal.sentAt);
-          return tDate >= new Date(d.getTime() - 60 * 60 * 1000) && tDate <= d;
-        }).length;
-        data.push({ label, count });
-      }
-    } else if (range === 'daily') {
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-        const label = d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
-        const count = deals.filter(deal => {
-          if (!deal.sentAt) return false;
-          const tDate = new Date(deal.sentAt);
-          return tDate.toDateString() === d.toDateString();
-        }).length;
-        data.push({ label, count });
-      }
-    } else if (range === 'weekly') {
-      for (let i = 3; i >= 0; i--) {
-        const endD = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-        const startD = new Date(endD.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const label = `W${4 - i}`;
-        const count = deals.filter(deal => {
-          if (!deal.sentAt) return false;
-          const tDate = new Date(deal.sentAt);
-          return tDate >= startD && tDate <= endD;
-        }).length;
-        data.push({ label, count });
-      }
-    }
-
-    return data;
-  }, [deals, range]);
-
-  const width = 650;
-  const height = 220;
-  const paddingX = 40;
-  const paddingY = 30;
-
-  const maxCount = Math.max(...chartData.map(d => d.count), 5);
-
-  const points = chartData.map((d, index) => {
-    const x = paddingX + (index / (chartData.length - 1 || 1)) * (width - paddingX * 2);
-    const y = height - paddingY - (d.count / maxCount) * (height - paddingY * 2);
-    return { x, y, ...d };
-  });
-
-  const pathD = points.length > 0
-    ? points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '')
-    : '';
-
-  const areaD = points.length > 0
-    ? `${pathD} L ${points[points.length - 1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`
-    : '';
-
-  return (
-    <Card>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center space-x-2">
-          <TrendingUp className="text-primary" size={20} />
-          <h2 className="text-lg font-semibold">{t('dealsChart')}</h2>
-        </div>
-        <div className="flex items-center border rounded-lg overflow-hidden bg-muted/30 p-1">
-          {['hourly', 'daily', 'weekly'].map(r => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${range === r ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              {t(r)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="relative w-full overflow-x-auto">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto min-w-[500px]">
-          <defs>
-            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
-
-          {[0, 0.5, 1].map((ratio, i) => {
-            const y = height - paddingY - ratio * (height - paddingY * 2);
-            const val = Math.round(ratio * maxCount);
-            return (
-              <g key={i}>
-                <line x1={paddingX} y1={y} x2={width - paddingX} y2={y} stroke="hsl(var(--border))" strokeDasharray="4 4" opacity="0.6" />
-                <text x={paddingX - 8} y={y + 4} textAnchor="end" className="text-[10px] fill-muted-foreground font-mono">{val}</text>
-              </g>
-            );
-          })}
-
-          {areaD && <path d={areaD} fill="url(#chartGradient)" />}
-          {pathD && <path d={pathD} fill="none" stroke="hsl(var(--primary))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
-
-          {points.map((p, i) => (
-            <g key={i} className="cursor-pointer" onMouseEnter={() => setHoveredPoint(p)} onMouseLeave={() => setHoveredPoint(null)}>
-              <circle cx={p.x} cy={p.y} r="4" className="fill-primary stroke-background stroke-2 hover:r-6 transition-all" />
-              {(i % Math.ceil(points.length / 7) === 0 || i === points.length - 1) && (
-                <text x={p.x} y={height - 8} textAnchor="middle" className="text-[10px] fill-muted-foreground font-medium">
-                  {p.label}
-                </text>
-              )}
-            </g>
-          ))}
-        </svg>
-
-        {hoveredPoint && (
-          <div
-            className="absolute z-10 bg-popover text-popover-foreground border shadow-md rounded px-2.5 py-1.5 text-xs font-medium pointer-events-none transform -translate-x-1/2 -translate-y-full"
-            style={{
-              left: `${(hoveredPoint.x / width) * 100}%`,
-              top: `${(hoveredPoint.y / height) * 100}%`
-            }}
-          >
-            <div>{hoveredPoint.label}</div>
-            <div className="text-primary font-semibold">{hoveredPoint.count} {t('dealsCount')}</div>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-};
+// Utils
+import { hashPassword } from './utils/crypto';
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -545,24 +257,6 @@ function App() {
     setNotificationForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNotificationChange = (providerId, field, value) => {
-    setConfig({
-      ...config,
-      notifications: {
-        ...config.notifications,
-        [providerId]: {
-          ...config.notifications[providerId],
-          [field]: value
-        }
-      }
-    });
-  };
-
-  const saveNotifications = async () => {
-    await saveConfig(config);
-    toast.success(t('settingsSaved'));
-  };
-
   // Searches Logic
   const openSearchModal = (index = null) => {
     if (index !== null) {
@@ -613,37 +307,14 @@ function App() {
 
   if (status?.authRequired && !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-black text-foreground flex items-center justify-center p-4">
-        <div className="w-full max-w-md p-8 shadow-2xl border border-zinc-800 bg-zinc-950 rounded-2xl relative overflow-hidden">
-          <div className="flex flex-col items-center space-y-3 mb-6">
-            <div className="p-3 rounded-full bg-primary/10 border border-primary/20 mb-1">
-              <Lock size={24} className="text-primary" />
-            </div>
-            <img src={avitoLogo} alt="Avito Logo" className="h-10 w-auto object-contain" />
-            <h1 className="text-2xl font-bold tracking-tight">Avito<span className="text-primary">Parser</span></h1>
-            <p className="text-sm text-muted-foreground text-center">{t('enterPassword')}</p>
-          </div>
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <Input
-              label={t('password')}
-              type="password"
-              value={authPasswordInput}
-              onChange={(e) => { setAuthPasswordInput(e.target.value); setAuthError(''); }}
-              placeholder="••••••••"
-              required
-              className="bg-black/50 border-zinc-800"
-            />
-            {authError && (
-              <div className="text-xs text-destructive font-medium bg-destructive/10 border border-destructive/20 rounded-md p-2.5 text-center">
-                {authError}
-              </div>
-            )}
-            <Button type="submit" className="w-full py-2.5 font-semibold text-base shadow-lg">
-              {t('login')}
-            </Button>
-          </form>
-        </div>
-      </div>
+      <AuthPage
+        t={t}
+        handleLoginSubmit={handleLoginSubmit}
+        authPasswordInput={authPasswordInput}
+        setAuthPasswordInput={setAuthPasswordInput}
+        authError={authError}
+        setAuthError={setAuthError}
+      />
     );
   }
 
@@ -658,295 +329,72 @@ function App() {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
-      {/* Mobile Overlay Backdrop */}
-      <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-md z-40 md:hidden transition-all duration-300 ${
-          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
+      <Sidebar
+        t={t}
+        activeTab={activeTab}
+        handleTabClick={handleTabClick}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+        status={status}
+        isAuthenticated={isAuthenticated}
+        handleLogout={handleLogout}
+        isWsConnected={isWsConnected}
       />
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r bg-card flex flex-col transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="h-16 flex items-center justify-between px-6 border-b font-semibold text-xl tracking-tight">
-          <div className="flex items-center space-x-3">
-            <img src={avitoLogo} alt="Avito Logo" className="h-7 w-auto object-contain" />
-            <span>Avito<span className="text-primary">Parser</span></span>
-          </div>
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground md:hidden"
-            aria-label={t('closeMenu')}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          <SidebarItem icon={LayoutDashboard} label={t('dashboard')} active={activeTab === 'dashboard'} onClick={() => handleTabClick('dashboard')} />
-          <SidebarItem icon={List} label={t('deals')} active={activeTab === 'deals'} onClick={() => handleTabClick('deals')} />
-          <SidebarItem icon={Search} label={t('searches')} active={activeTab === 'searches'} onClick={() => handleTabClick('searches')} />
-          <SidebarItem icon={Settings} label={t('settings')} active={activeTab === 'settings'} onClick={() => handleTabClick('settings')} />
-        </div>
-        <div className="p-4 border-t text-sm text-muted-foreground flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Server size={16} />
-            <span>v{status?.version || '1.0.0'}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {status?.authRequired && isAuthenticated && (
-              <button
-                onClick={handleLogout}
-                className="p-1 text-muted-foreground hover:text-destructive rounded transition-colors"
-                title={t('logout')}
-              >
-                <LogOut size={16} />
-              </button>
-            )}
-            <div className={`flex items-center space-x-1 text-xs px-2 py-0.5 rounded-full border transition-colors ${isWsConnected ? 'bg-green-500/10 text-green-500 border-green-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`} title={isWsConnected ? t('wsConnected') : t('pollingFallback')}>
-              {isWsConnected ? <Wifi size={12} /> : <RefreshCw size={12} className="animate-spin" />}
-              <span>{isWsConnected ? 'WS' : 'Polling'}</span>
-            </div>
-          </div>
-        </div>
-      </aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-muted/30 relative flex flex-col min-w-0">
-        {/* Mobile Header Bar */}
-        <div className="flex items-center justify-between mb-4 md:hidden pb-3 border-b">
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 rounded-lg border bg-card text-foreground shadow-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label={t('openNavigation')}
-          >
-            <Menu size={22} />
-          </button>
-          <div className="flex items-center space-x-2 font-semibold text-lg">
-            <img src={avitoLogo} alt="Avito Logo" className="h-6 w-auto object-contain" />
-            <span>Avito<span className="text-primary">Parser</span></span>
-          </div>
-        </div>
+        <MobileHeader t={t} setIsMobileMenuOpen={setIsMobileMenuOpen} />
 
         <div className="max-w-6xl mx-auto space-y-8 w-full">
-
           <div className="flex items-center justify-between">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t(activeTab)}</h1>
           </div>
 
           {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
-                  <div className="text-sm font-medium text-muted-foreground">{t('status')}</div>
-                  <div className="mt-2 text-2xl font-semibold flex items-center space-x-2">
-                    <span className="relative flex h-3 w-3">
-                      {status.isPending ? (
-                        <><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span></>
-                      ) : status.isPollingEnabled ? (
-                        <><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></>
-                      ) : (
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                      )}
-                    </span>
-                    <span>
-                      {status.isPending
-                        ? t('pending') || 'Pending'
-                        : status.isPollingEnabled
-                          ? t('active')
-                          : t('paused')}
-                    </span>
-                  </div>
-                </Card>
-
-                <Card>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-muted-foreground">{t('pollingInterval')}</div>
-                    <Clock size={18} className="text-muted-foreground" />
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold">
-                    {config.intervalMinutes || config.checkIntervalMinutes || 5} <span className="text-base font-normal text-muted-foreground">{t('minutes')}</span>
-                  </div>
-                </Card>
-
-                <Card>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-muted-foreground">{t('activeSearches')}</div>
-                    <SearchCode size={18} className="text-muted-foreground" />
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold">{config.searches?.length || 0}</div>
-                </Card>
-
-                <Card>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-muted-foreground">{t('activeNotifications')}</div>
-                    <Bell size={18} className="text-muted-foreground" />
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold">
-                    {activeNotificationsCount} <span className="text-base font-normal text-muted-foreground">/ {status.notifications?.length || 0}</span>
-                  </div>
-                </Card>
-              </div>
-
-              <div className="flex flex-wrap gap-4">
-                <Button onClick={togglePolling} variant={status.isPollingEnabled ? "destructive" : "primary"}>
-                  {status.isPollingEnabled ? <><Pause className="mr-2 h-4 w-4" /> {t('pausePolling')}</> : <><Play className="mr-2 h-4 w-4" /> {t('startPolling')}</>}
-                </Button>
-                <Button onClick={runManualCheck} variant="outline" disabled={status.isPending}>
-                  <Globe className={`mr-2 h-4 w-4 ${status.isPending ? 'animate-spin' : ''}`} /> {t('runCheck')}
-                </Button>
-                <Button onClick={() => setClearSentModalOpen(true)} variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                  <RotateCcw className="mr-2 h-4 w-4" /> {t('clearSentDeals')}
-                </Button>
-              </div>
-
-              <DealsAnalyticsChart deals={deals} t={t} />
-            </div>
+            <DashboardPage
+              t={t}
+              status={status}
+              config={config}
+              deals={deals}
+              activeNotificationsCount={activeNotificationsCount}
+              togglePolling={togglePolling}
+              runManualCheck={runManualCheck}
+              setClearSentModalOpen={setClearSentModalOpen}
+            />
           )}
 
           {activeTab === 'deals' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {visibleDeals.length === 0 ? (
-                <div className="col-span-full py-12 text-center text-muted-foreground">{t('noDeals')}</div>
-              ) : (
-                visibleDeals.map(deal => (
-                  <Card key={deal.id} className="flex flex-col">
-                    {deal.image && <img src={deal.image} alt={deal.title} className="w-full h-48 object-cover rounded-md mb-4" />}
-                    <h3 className="font-semibold text-lg line-clamp-2 mb-2" title={deal.title}>{deal.title}</h3>
-                    <div className="text-2xl font-semibold text-primary mb-4">{deal.price} ₽</div>
-                    <div className="mt-auto pt-4 flex items-center justify-between border-t">
-                      <a href={deal.url} target="_blank" rel="noreferrer" className="text-sm text-blue-500 hover:underline">{t('avitoLink')}</a>
-                      <Button variant="ghost" className="text-destructive h-8 px-2" onClick={() => setDeleteDealId(deal.id)}>
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
+            <DealsPage
+              t={t}
+              visibleDeals={visibleDeals}
+              setDeleteDealId={setDeleteDealId}
+            />
           )}
 
           {activeTab === 'searches' && (
-            <Card>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold">{t('activeSearches')}</h2>
-                  <Button onClick={() => openSearchModal(null)}>{t('addSearch')}</Button>
-                </div>
-                {config.searches.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">{t('noSearches')}</p>
-                ) : (
-                  <div className="space-y-4">
-                    {config.searches.map((s, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex-1 overflow-hidden mr-4">
-                          <div className="font-medium truncate" title={s.url}>{s.url}</div>
-                          <div className="text-sm text-muted-foreground mt-1 flex gap-4">
-                            {s.maxPrice && <span>{t('maxPriceShort')}: {s.maxPrice} ₽</span>}
-                            {s.mandatoryKeywords?.length > 0 && <span>{t('mustHave')}: {s.mandatoryKeywords.join(', ')}</span>}
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => openSearchModal(i)}>{t('edit')}</Button>
-                          <Button variant="destructive" size="sm" onClick={() => setDeleteSearchIdx(i)}><Trash2 size={16} /></Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
+            <SearchesPage
+              t={t}
+              config={config}
+              openSearchModal={openSearchModal}
+              setDeleteSearchIdx={setDeleteSearchIdx}
+            />
           )}
 
           {activeTab === 'settings' && (
-            <div className="space-y-6">
-              <Card>
-                <h2 className="text-xl font-semibold mb-4">{t('generalSettings')}</h2>
-                <div className="flex flex-wrap items-center gap-6">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">{t('theme')}:</span>
-                    <Button variant="outline" size="icon" onClick={toggleTheme}>
-                      {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-                    </Button>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">{t('language')}:</span>
-                    <div className="flex border rounded-md overflow-hidden">
-                      <button onClick={() => changeLanguage('en')} className={`px-3 py-1.5 text-sm font-medium ${i18n.language === 'en' ? 'bg-primary text-primary-foreground' : 'bg-transparent hover:bg-muted'}`}>EN</button>
-                      <button onClick={() => changeLanguage('ru')} className={`px-3 py-1.5 text-sm font-medium ${i18n.language === 'ru' ? 'bg-primary text-primary-foreground' : 'bg-transparent hover:bg-muted'}`}>RU</button>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 sm:pl-6 sm:border-l">
-                    <Clock size={18} className="text-muted-foreground" />
-                    <span className="text-sm font-medium">{t('pollingInterval')}:</span>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="1440"
-                        value={config.intervalMinutes || config.checkIntervalMinutes || 5}
-                        onChange={e => handleIntervalChange(Number(e.target.value))}
-                        className="w-20 h-9 px-2 text-sm rounded-md border border-input bg-transparent text-center font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      />
-                      <span className="text-xs text-muted-foreground">{t('minutes')}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 sm:pl-6 sm:border-l">
-                    <div className="flex items-center space-x-2">
-                      <Cookie size={18} className="text-muted-foreground" />
-                      <span className="text-sm font-medium">{t('cookies')}:</span>
-                      <span className="text-xs text-muted-foreground font-mono">({status.cookiesCount || 0} {t('items')})</span>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={openCookiesModal}>
-                      {t('updateCookies')}
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-
-              <Card>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">{t('notifications')}</h2>
-                </div>
-                <div className="space-y-4">
-                  {status.notifications.map(p => {
-                    const isEnabled = !!config.notifications?.[p.id]?.enabled;
-                    return (
-                      <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-muted/30 transition-colors">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-2.5 h-2.5 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
-                          <div>
-                            <div className="font-medium text-base">{p.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {isEnabled ? t('enabled') : t('disabled')}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openNotificationModal(p.id)}
-                          >
-                            <Sliders size={16} className="mr-1.5" />
-                            {t('manage')}
-                          </Button>
-                          <Switch
-                            checked={isEnabled}
-                            onChange={() => handleNotificationToggle(p.id)}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </Card>
-            </div>
+            <SettingsPage
+              t={t}
+              i18n={i18n}
+              theme={theme}
+              toggleTheme={toggleTheme}
+              changeLanguage={changeLanguage}
+              config={config}
+              handleIntervalChange={handleIntervalChange}
+              status={status}
+              openCookiesModal={openCookiesModal}
+              openNotificationModal={openNotificationModal}
+              handleNotificationToggle={handleNotificationToggle}
+            />
           )}
-
         </div>
       </main>
 
