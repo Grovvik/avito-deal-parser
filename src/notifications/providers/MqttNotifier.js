@@ -7,18 +7,25 @@ class MqttNotifier {
         this.clients = new Map(); // url -> client cache
     }
 
-    _getClient(brokerUrl) {
-        if (this.clients.has(brokerUrl)) {
-            return this.clients.get(brokerUrl);
+    _getClient(config) {
+        const { brokerUrl, username, password } = config;
+        const cacheKey = `${brokerUrl}_${username || ''}_${password || ''}`;
+
+        if (this.clients.has(cacheKey)) {
+            return this.clients.get(cacheKey);
         }
         
-        const client = mqtt.connect(brokerUrl);
+        const options = {};
+        if (username) options.username = username;
+        if (password) options.password = password;
+
+        const client = mqtt.connect(brokerUrl, options);
         
         client.on('error', (err) => {
             this.logger.error(`MQTT Client Error (${brokerUrl}): ${err.message}`);
         });
 
-        this.clients.set(brokerUrl, client);
+        this.clients.set(cacheKey, client);
         return client;
     }
 
@@ -29,10 +36,17 @@ class MqttNotifier {
         }
 
         try {
-            const client = this._getClient(config.brokerUrl);
+            const client = this._getClient(config);
             const payload = JSON.stringify({
-                item,
-                price,
+                id: String(item.id),
+                title: item.title || '',
+                description: item.description || '',
+                price: price ?? item.price ?? 0,
+                url: item.url || '',
+                image: item.image || '',
+                isReserved: Boolean(item.isReserved),
+                category: item.category || '',
+                location: item.location || '',
                 searchUrl: url,
                 timestamp: new Date().toISOString()
             });

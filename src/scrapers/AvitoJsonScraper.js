@@ -60,16 +60,30 @@ class AvitoJsonScraper {
             (Array.isArray(raw.badges) && raw.badges.some(b => b.type === 'reserved' || b.title?.toLowerCase().includes('забронирован')))
         );
 
+        let image = '';
+        if (typeof raw.image === 'string') {
+            image = raw.image;
+        } else if (raw.image && typeof raw.image === 'object') {
+            image = raw.image.src || raw.image.url || '';
+        } else if (Array.isArray(raw.images) && raw.images.length > 0) {
+            const firstImg = raw.images[0];
+            if (typeof firstImg === 'string') {
+                image = firstImg;
+            } else if (firstImg && typeof firstImg === 'object') {
+                image = firstImg['640x480'] || firstImg['1280x960'] || firstImg['140x105'] || firstImg.url || firstImg.src || '';
+            }
+        }
+
         return {
             id: String(raw.id || raw.itemId),
             title: raw.title || '',
             description: raw.descriptionSnippet || raw.description || '',
             price: price,
             url: url,
+            image: image,
             isReserved: isReserved,
             category: raw.category?.name || '',
-            location: raw.location?.name || '',
-            raw: raw
+            location: raw.location?.name || ''
         };
     }
 
