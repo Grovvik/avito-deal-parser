@@ -282,11 +282,12 @@ function App() {
   };
 
   useEffect(() => {
-    const savedHash = localStorage.getItem('web_auth_hash') || '';
+    const savedHash = localStorage.getItem('web_auth_hash');
+    const socketAuth = savedHash ? { passwordHash: savedHash } : {};
 
     const socket = io({
       path: '/ws',
-      auth: { passwordHash: savedHash },
+      auth: socketAuth,
       transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnectionDelay: 2000
