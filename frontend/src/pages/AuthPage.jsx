@@ -9,9 +9,6 @@ const AuthPage = ({ t, handleLoginSubmit, authPasswordInput, setAuthPasswordInpu
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
       <div className="w-full max-w-md p-8 shadow-2xl border bg-card text-card-foreground rounded-2xl relative overflow-hidden">
         <div className="flex flex-col items-center space-y-3 mb-6">
-          <div className="p-3 rounded-full bg-primary/10 border border-primary/20 mb-1">
-            <Lock size={24} className="text-primary" />
-          </div>
           <img src={avitoLogo} alt="Avito Logo" className="h-10 w-auto object-contain" />
           <h1 className="text-2xl font-bold tracking-tight">Avito<span className="text-primary">Parser</span></h1>
           <p className="text-sm text-muted-foreground text-center">{t('enterPassword')}</p>
@@ -24,7 +21,6 @@ const AuthPage = ({ t, handleLoginSubmit, authPasswordInput, setAuthPasswordInpu
             onChange={(e) => { setAuthPasswordInput(e.target.value); setAuthError(''); }}
             placeholder="••••••••"
             required
-            className="bg-background border-input"
           />
           {authError && (
             <div className="text-xs text-destructive font-medium bg-destructive/10 border border-destructive/20 rounded-md p-2.5 text-center">
