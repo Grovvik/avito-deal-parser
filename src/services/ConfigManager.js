@@ -82,6 +82,12 @@ class ConfigManager {
         this.saveSentIds();
     }
 
+    clearSentIds() {
+        this.sentIds.clear();
+        this.saveSentIds();
+        this.logger.info('Sent IDs history cleared.');
+    }
+
     getCookiesFilePath() {
         return this.cookiesFile;
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders } from 'lucide-react';
+import { LayoutDashboard, List, Settings, Search, Play, Pause, Trash2, Globe, Server, Moon, Sun, Clock, Bell, SearchCode, TrendingUp, Wifi, RefreshCw, Cookie, Sliders, RotateCcw } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useTheme } from './hooks/useTheme';
 import Modal from './components/Modal';
@@ -229,6 +229,7 @@ function App() {
   // Confirmation Modals State
   const [deleteDealId, setDeleteDealId] = useState(null);
   const [deleteSearchIdx, setDeleteSearchIdx] = useState(null);
+  const [clearSentModalOpen, setClearSentModalOpen] = useState(false);
 
   // Cookies Modal State
   const [cookiesModalOpen, setCookiesModalOpen] = useState(false);
@@ -330,6 +331,12 @@ function App() {
     socketRef.current?.emit('delete_deal', deleteDealId);
     toast.success(t('dealDeleted'));
     setDeleteDealId(null);
+  };
+
+  const confirmClearSentDeals = () => {
+    socketRef.current?.emit('clear_sent_deals');
+    toast.success(t('sentDealsCleared'));
+    setClearSentModalOpen(false);
   };
 
   const changeLanguage = async (lng) => {
@@ -542,12 +549,15 @@ function App() {
                 </Card>
               </div>
 
-              <div className="flex space-x-4">
+              <div className="flex flex-wrap gap-4">
                 <Button onClick={togglePolling} variant={status.isPollingEnabled ? "destructive" : "primary"}>
                   {status.isPollingEnabled ? <><Pause className="mr-2 h-4 w-4" /> {t('pausePolling')}</> : <><Play className="mr-2 h-4 w-4" /> {t('startPolling')}</>}
                 </Button>
                 <Button onClick={runManualCheck} variant="outline" disabled={status.isPending}>
                   <Globe className={`mr-2 h-4 w-4 ${status.isPending ? 'animate-spin' : ''}`} /> {t('runCheck')}
+                </Button>
+                <Button onClick={() => setClearSentModalOpen(true)} variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <RotateCcw className="mr-2 h-4 w-4" /> {t('clearSentDeals')}
                 </Button>
               </div>
 
@@ -845,6 +855,17 @@ function App() {
           </div>
         </form>
       </Modal>
+
+      {/* Clear Sent Deals Confirm Modal */}
+      <ConfirmModal
+        isOpen={clearSentModalOpen}
+        onClose={() => setClearSentModalOpen(false)}
+        onConfirm={confirmClearSentDeals}
+        title={t('confirmClearSentTitle')}
+        message={t('confirmClearSentMessage')}
+        confirmText={t('delete')}
+        cancelText={t('cancel')}
+      />
 
     </div>
   );

@@ -59,7 +59,11 @@ const resources = {
       "invalidJson": "Invalid JSON format!",
       "cookiesPlaceholder": "Paste exported cookies JSON array here...",
       "manage": "Manage",
-      "pending": "Pending"
+      "pending": "Pending",
+      "clearSentDeals": "Clear Sent History",
+      "confirmClearSentTitle": "Clear Sent Deals History",
+      "confirmClearSentMessage": "Are you sure you want to clear the history of sent deals? On the next check, all matching deals will be sent to notifications again.",
+      "sentDealsCleared": "Sent deals history cleared!"
     }
   },
   ru: {
@@ -119,7 +123,11 @@ const resources = {
       "invalidJson": "Неверный формат JSON!",
       "cookiesPlaceholder": "Вставьте сюда экспортированный массив JSON с куки...",
       "manage": "Изменить",
-      "pending": "Выполняется..."
+      "pending": "Выполняется...",
+      "clearSentDeals": "Очистить историю отправленных",
+      "confirmClearSentTitle": "Очистить историю отправленных объявлений",
+      "confirmClearSentMessage": "Вы уверены, что хотите очистить историю отправленных объявлений? При следующей проверке все подходящие объявления будут отправлены в уведомления повторно.",
+      "sentDealsCleared": "История отправленных объявлений очищена!"
     }
   }
 };

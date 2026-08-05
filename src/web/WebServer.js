@@ -98,6 +98,12 @@ class WebServer {
                 }
             });
 
+            socket.on('clear_sent_deals', () => {
+                this.logger.info(`WS action 'clear_sent_deals' from ${socket.id}`);
+                this.configManager.clearSentIds();
+                this.broadcastStatus();
+            });
+
             socket.on('disconnect', () => {
                 this.logger.info(`Client disconnected: ${socket.id}`);
             });
@@ -193,6 +199,12 @@ class WebServer {
             this.scheduler.runManualCheck();
             this.broadcastStatus();
             res.json({ success: true, message: 'Check started' });
+        });
+
+        api.post('/action/clear-sent-deals', (req, res) => {
+            this.configManager.clearSentIds();
+            this.broadcastStatus();
+            res.json({ success: true, message: 'Sent deals cleared' });
         });
 
         this.app.use('/api', api);
