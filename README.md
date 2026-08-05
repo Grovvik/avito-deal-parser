@@ -6,15 +6,18 @@ A powerful monitoring system for Avito listings featuring an extensible architec
 
 ## Features
 
-* **Extensible Scraper Architecture**: Automatically falls back to HTML scraping if the primary JSON state scraper fails.
+* **Extensible Scraper Architecture**: Automatically falls back to HTML scraping if the primary JSON state scraper fails. Automatically maintains and saves fresh browser cookies.
 * **Modern Web Panel (React + Vite)**: A sleek, responsive dashboard to manage search tasks, view deal history with images, and configure application settings on the fly.
+* **Password Protection (SHA-256)**: Protect your Web Panel with a password defined in `.env`. Password is hashed on the client side via SHA-256 before transmission.
+* **Real-time Socket.IO Integration**: Fast, bi-directional communication between the Web Panel and backend server.
 * **Multi-Channel Notifications**:
-  * **Telegram Bot**: Inline keyboard interface for managing tasks and receiving alerts.
-  * **Discord Webhook**: Supports embedding deal information with images. Includes Proxy support!
-  * **MQTT Broker**: Send deal payloads to IoT or automation services (e.g. Home Assistant).
+  * **Telegram Bot**: Inline keyboard interface for managing tasks and receiving alerts with direct item links.
+  * **Discord Webhook**: Supports embedding deal information with images and proxy support.
+  * **MQTT Broker**: Sends clean, standardized JSON deal payloads to home automation services (e.g. Home Assistant).
+* **Notification Management**: Toggle providers on/off and configure settings (Webhooks, Broker URLs, Chat IDs, Proxies) via dedicated modal windows.
 * **Advanced Keyword Filtering**: Filters items using Mandatory (must include all) and Optional (must include at least one) keyword logic.
+* **Sent History Reset**: Clear sent deals history from the dashboard at any time to re-evaluate listings.
 * **Proxy Support**: Connect via proxies for Telegram, Discord, and Playwright browsers.
-* **Session Management**: Saves browser cookies to reduce Captcha triggers.
 
 ## Prerequisites
 
@@ -28,6 +31,7 @@ Create a `.env` file in the project root. All modules are independent and start 
 ```env
 # Web Server Configuration
 WEB_PORT=3000                                # Starts the Web Panel on port 3000
+WEB_PASSWORD=secret_password                 # Optional: Password authentication for Web Panel (SHA-256 protected)
 
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNO # Starts the Telegram bot
@@ -40,10 +44,11 @@ AVITO_PROXY=http://user:pass@proxy_host:8080 # Proxy for Playwright/Avito fetchi
 
 ## Web Panel
 
-To access the Web Panel, simply specify `WEB_PORT` in your `.env` file.
+To access the Web Panel, specify `WEB_PORT` in your `.env` file.
 1. Navigate to `http://localhost:<WEB_PORT>`
-2. Manage your active searches via visual modal windows.
-3. Access **Deals Analytics**, dark mode theming, and adjust notification intervals dynamically from the **Settings** tab.
+2. If `WEB_PASSWORD` is configured, log in using your password (hashed with SHA-256).
+3. Manage active search tasks, cookies, and notification settings using interactive modal dialogs and switch toggles.
+4. View real-time **System Status** (`Active`, `Paused`, `Pending`), analytics charts, and clear sent history as needed.
 
 ## Installation
 
@@ -109,7 +114,7 @@ The `/app/data` volume contains:
 * `config.json`: Search tasks, intervals, polling settings, and dynamic notification credentials.
 * `deals.json`: The historical payload of the 500 most recently sent deals (used by the Web Panel).
 * `cookies.json`: Browser cookies saved automatically to bypass anti-bot mechanisms.
-* `sent_ids.json`: Processed item IDs to prevent duplicate alerts.
+* `sent_ids.json`: Processed item IDs to prevent duplicate alerts (can be cleared via Web Panel).
 
 ## License
 
