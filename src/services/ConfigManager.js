@@ -26,7 +26,14 @@ class ConfigManager {
             const initialConfig = {
                 searches: [], // { url: string, maxPrice: number, keywords: string[] }
                 intervalMinutes: 5,
-                isPollingEnabled: false
+                isPollingEnabled: false,
+                locale: 'en',
+                scrapersOrder: ['json', 'html'],
+                notifications: {
+                    telegram: { enabled: true },
+                    discord: { enabled: false, webhookUrl: '' },
+                    mqtt: { enabled: false, brokerUrl: '', topic: '' }
+                }
             };
             this.config = initialConfig;
             this.saveConfig(initialConfig);
@@ -77,6 +84,27 @@ class ConfigManager {
 
     getCookiesFilePath() {
         return this.cookiesFile;
+    }
+
+    getCookies() {
+        if (!fs.existsSync(this.cookiesFile)) return [];
+        try {
+            return JSON.parse(fs.readFileSync(this.cookiesFile, 'utf8'));
+        } catch (err) {
+            return [];
+        }
+    }
+
+    saveCookies(cookiesData) {
+        try {
+            const parsed = typeof cookiesData === 'string' ? JSON.parse(cookiesData) : cookiesData;
+            fs.writeFileSync(this.cookiesFile, JSON.stringify(parsed, null, 2));
+            this.logger.info('Cookies updated successfully.');
+            return true;
+        } catch (err) {
+            this.logger.error(`Failed to save cookies: ${err.message}`);
+            throw err;
+        }
     }
 }
 

@@ -2,6 +2,7 @@ const { Bot, session } = require('grammy');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const Logger = require('../utils/logger');
 const UI = require('./UI');
+const i18n = require('../utils/i18n');
 
 class TelegramBot {
     constructor(token, adminId, configManager, scheduler, proxyUrl = null) {
@@ -46,6 +47,7 @@ class TelegramBot {
 
     async safeEditDashboard(ctx, messageId) {
         const config = this.configManager.config;
+        i18n.setLocale(config.locale || 'en');
         const text = UI.renderDashboardMessage(config, this.configManager.sentIds.size);
         const options = {
             parse_mode: 'HTML',
@@ -70,6 +72,8 @@ class TelegramBot {
 
     async safeEditManageSearches(ctx, messageId) {
         const searches = this.configManager.config.searches || [];
+        const config = this.configManager.config;
+        i18n.setLocale(config.locale || 'en');
         const page = ctx.session.managePage || 0;
         const text = UI.renderManageSearchesMessage(searches.length);
         const options = {
@@ -94,6 +98,8 @@ class TelegramBot {
 
     async safeEditSearchTask(ctx, messageId, index) {
         const searches = this.configManager.config.searches || [];
+        const config = this.configManager.config;
+        i18n.setLocale(config.locale || 'en');
         const search = searches[index];
         if (!search) {
             return this.safeEditManageSearches(ctx, messageId);
@@ -121,17 +127,7 @@ class TelegramBot {
         ctx.session.dashboardMessageId = sent.message_id;
     }
 
-    async sendDealAlert(item, price, url) {
-        const message = UI.renderDealNotification(item, price, url);
-        try {
-            await this.bot.api.sendMessage(this.adminId, message, {
-                parse_mode: 'HTML',
-                link_preview_options: { is_disabled: true }
-            });
-        } catch (err) {
-            this.logger.error(`Failed to send alert: ${err.message}`);
-        }
-    }
+    // sendDealAlert was moved to TelegramNotifier
 
     initHandlers() {
         this.bot.command('start', async (ctx) => {
@@ -303,8 +299,10 @@ class TelegramBot {
             }
 
             if (action === 'action_run_now') {
-                await ctx.answerCallbackQuery('Starting check...');
-                const msg = await ctx.reply('🔎 Manual check started...', { parse_mode: 'HTML' });
+                const config = this.configManager.config;
+                i18n.setLocale(config.locale || 'en');
+                await ctx.answerCallbackQuery(i18n.t('starting_check'));
+                const msg = await ctx.reply(i18n.t('manual_check_started'), { parse_mode: 'HTML' });
                 await this.scheduler.runManualCheck();
                 setTimeout(() => this.safeDeleteMessage(ctx, msg.message_id), 3000);
                 return;
@@ -314,7 +312,9 @@ class TelegramBot {
                 const isEnabled = !this.configManager.config.isPollingEnabled;
                 this.configManager.saveConfig({ isPollingEnabled: isEnabled });
                 this.scheduler.restart();
-                await ctx.answerCallbackQuery(isEnabled ? 'Started' : 'Paused');
+                const config = this.configManager.config;
+                i18n.setLocale(config.locale || 'en');
+                await ctx.answerCallbackQuery(isEnabled ? i18n.t('started') : i18n.t('paused'));
             } else if (action === 'set_interval') {
                 ctx.session.adminState = 'awaiting_interval';
                 const prompt = await ctx.reply('⏱ Send new <b>Polling Interval</b> in minutes (e.g. <code>5</code>):', {
@@ -400,7 +400,7 @@ class TelegramBot {
             } else if (state === 'awaiting_search_mandatory_keywords') {
                 let mandatory = [];
                 if (textInput.toLowerCase() !== 'none') {
-                    mandatory = textInput.split(' ').map(k => k.trim().toLowerCase()).filter(Boolean);
+                    mandatory = textInput.replace(/,/g, ' ').split(/\s+/).map(k => k.trim().toLowerCase()).filter(Boolean);
                 }
                 ctx.session.tempMandatoryKeywords = mandatory;
                 ctx.session.adminState = 'awaiting_search_optional_keywords';
@@ -417,7 +417,7 @@ class TelegramBot {
             } else if (state === 'awaiting_search_optional_keywords') {
                 let optional = [];
                 if (textInput.toLowerCase() !== 'none') {
-                    optional = textInput.split(' ').map(k => k.trim().toLowerCase()).filter(Boolean);
+                    optional = textInput.replace(/,/g, ' ').split(/\s+/).map(k => k.trim().toLowerCase()).filter(Boolean);
                 }
 
                 const currentSearches = this.configManager.config.searches || [];
@@ -485,7 +485,7 @@ class TelegramBot {
             } else if (state === 'editing_search_mandatory') {
                 let mandatory = [];
                 if (textInput.toLowerCase() !== 'none') {
-                    mandatory = textInput.split(' ').map(k => k.trim().toLowerCase()).filter(Boolean);
+                    mandatory = textInput.replace(/,/g, ' ').split(/\s+/).map(k => k.trim().toLowerCase()).filter(Boolean);
                 }
                 const searches = [...(this.configManager.config.searches || [])];
                 if (searches[index]) {
@@ -507,7 +507,7 @@ class TelegramBot {
             } else if (state === 'editing_search_optional') {
                 let optional = [];
                 if (textInput.toLowerCase() !== 'none') {
-                    optional = textInput.split(' ').map(k => k.trim().toLowerCase()).filter(Boolean);
+                    optional = textInput.replace(/,/g, ' ').split(/\s+/).map(k => k.trim().toLowerCase()).filter(Boolean);
                 }
                 const searches = [...(this.configManager.config.searches || [])];
                 if (searches[index]) {

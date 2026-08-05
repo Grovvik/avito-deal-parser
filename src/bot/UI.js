@@ -1,4 +1,5 @@
 const { InlineKeyboard } = require('grammy');
+const i18n = require('../utils/i18n');
 
 class UI {
     static escapeHtml(str) {
@@ -7,15 +8,15 @@ class UI {
 
     static buildControlPanelKeyboard(config) {
         return new InlineKeyboard()
-            .text('🔄 Run Check Now', 'action_run_now')
-            .text(config.isPollingEnabled ? '⏸ Pause Polling' : '▶ Start Polling')
+            .text(i18n.t('run_check_now'), 'action_run_now')
+            .text(config.isPollingEnabled ? i18n.t('pause_polling') : i18n.t('start_polling'), 'action_toggle_polling')
             .row()
-            .text('➕ Add Search Task', 'add_search')
-            .text('⚙️ Manage Searches', 'manage_searches')
+            .text(i18n.t('add_search_task'), 'add_search')
+            .text(i18n.t('manage_searches'), 'manage_searches')
             .row()
-            .text(`⏱ Interval: ${config.intervalMinutes}m`, 'set_interval')
+            .text(`${i18n.t('interval')}: ${config.intervalMinutes} ${i18n.t('minutes')}`, 'set_interval')
             .row()
-            .text('📊 Refresh Dashboard', 'refresh_dashboard');
+            .text(i18n.t('refresh_dashboard'), 'refresh_dashboard');
     }
 
     static buildManageSearchesKeyboard(searches, page = 0, pageSize = 6) {
@@ -47,26 +48,26 @@ class UI {
               .row();
         }
 
-        kb.text('🔙 Back to Dashboard', 'back_to_dashboard');
+        kb.text(i18n.t('back_to_dashboard'), 'back_to_dashboard');
         return kb;
     }
 
     static buildEditSearchKeyboard(index) {
         return new InlineKeyboard()
-            .text('🔗 Edit URL', `edit_param_url_${index}`)
-            .text('💰 Edit Max Price', `edit_param_max_price_${index}`)
+            .text(`🔗 ${i18n.t('edit_url')}`, `edit_param_url_${index}`)
+            .text(`💰 ${i18n.t('edit_max_price')}`, `edit_param_max_price_${index}`)
             .row()
-            .text('📌 Edit Mandatory Keywords', `edit_param_mandatory_${index}`)
+            .text(`📌 ${i18n.t('edit_mandatory_kw')}`, `edit_param_mandatory_${index}`)
             .row()
-            .text('💡 Edit Optional Keywords', `edit_param_optional_${index}`)
+            .text(`💡 ${i18n.t('edit_optional_kw')}`, `edit_param_optional_${index}`)
             .row()
-            .text('🗑 Delete Task', `delete_search_${index}`)
+            .text(`🗑 ${i18n.t('delete_search')}`, `delete_search_${index}`)
             .row()
-            .text('⬅️ Back to Tasks List', 'manage_searches');
+            .text(i18n.t('manage_searches'), 'manage_searches');
     }
 
     static buildCancelKeyboard(cancelAction = 'back_to_dashboard') {
-        return new InlineKeyboard().text('❌ Cancel', cancelAction);
+        return new InlineKeyboard().text(`❌ ${i18n.t('cancel')}`, cancelAction);
     }
 
     static renderDashboardMessage(config, sentCount) {
@@ -86,18 +87,18 @@ class UI {
             }).join('\n');
         }
 
-        return `🤖 <b>Avito Monitoring Control Panel</b>\n\n` +
-               `<b>Status:</b> ${config.isPollingEnabled ? '🟢 Active' : '🔴 Paused'}\n` +
-               `<b>Check Interval:</b> <code>${config.intervalMinutes} min</code>\n` +
-               `<b>Sent Items History:</b> <code>${sentCount} items</code>\n\n` +
+        return `🤖 <b>${i18n.t('dashboard_title')}</b>\n\n` +
+               `<b>${i18n.t('polling_status')}:</b> ${config.isPollingEnabled ? '🟢 ' + i18n.t('enabled') : '🔴 ' + i18n.t('disabled')}\n` +
+               `<b>${i18n.t('interval')}:</b> <code>${config.intervalMinutes} ${i18n.t('minutes')}</code>\n` +
+               `<b>${i18n.t('total_deals')}:</b> <code>${sentCount} items</code>\n\n` +
                `<b>Active Search Tasks (${config.searches?.length || 0}):</b>\n${searchesStr}`;
     }
 
     static renderManageSearchesMessage(searchesCount) {
         if (searchesCount === 0) {
-            return `⚙️ <b>Manage Search Tasks</b>\n\n<i>No active search tasks found. Click "Add Search Task" on dashboard to create one.</i>`;
+            return `⚙️ <b>${i18n.t('manage_searches_title')}</b>\n\n<i>No active search tasks found. Click "Add Search Task" on dashboard to create one.</i>`;
         }
-        return `⚙️ <b>Manage Search Tasks</b>\nSelect a task from the list below to edit its parameters:`;
+        return `⚙️ <b>${i18n.t('manage_searches_title')}</b>\nSelect a task from the list below to edit its parameters:`;
     }
 
     static renderEditSearchMessage(search, index) {
@@ -137,9 +138,9 @@ class UI {
             infoBlock += `\n👤 <b>Seller:</b> ${this.escapeHtml(ratingInfo)}`;
         }
     
-        return `🔥 <b>NEW DEAL FOUND!</b>\n\n` +
+        return `${i18n.t('deal_alert')}\n\n` +
                `📌 <b>Title:</b> ${this.escapeHtml(item.title)}\n` +
-               `💰 <b>Price:</b> <code>${price} ₽</code>\n` +
+               `💰 <b>${i18n.t('price')}:</b> <code>${price} ₽</code>\n` +
                `🆔 <b>ID:</b> <code>${item.id}</code>\n\n` +
                `${infoBlock}\n\n` +
                `🔗 <a href="${url}">Open on Avito</a>`;
