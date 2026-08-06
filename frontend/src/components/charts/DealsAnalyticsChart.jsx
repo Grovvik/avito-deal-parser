@@ -15,32 +15,37 @@ const DealsAnalyticsChart = ({ deals, t }) => {
         const d = new Date(now.getTime() - i * 60 * 60 * 1000);
         const label = `${String(d.getHours()).padStart(2, '0')}:00`;
         const count = deals.filter(deal => {
-          if (!deal.sentAt) return false;
-          const tDate = new Date(deal.sentAt);
-          return tDate >= new Date(d.getTime() - 60 * 60 * 1000) && tDate <= d;
+          const timestamp = deal.sentAt || deal.createdAt;
+          if (!timestamp) return false;
+          const tDate = new Date(timestamp);
+          return tDate <= d;
         }).length;
         data.push({ label, count });
       }
     } else if (range === 'daily') {
       for (let i = 6; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-        const label = d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+        const dateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const cutoff = i === 0
+          ? now
+          : new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 23, 59, 59, 999);
+        const label = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
         const count = deals.filter(deal => {
-          if (!deal.sentAt) return false;
-          const tDate = new Date(deal.sentAt);
-          return tDate.toDateString() === d.toDateString();
+          const timestamp = deal.sentAt || deal.createdAt;
+          if (!timestamp) return false;
+          const tDate = new Date(timestamp);
+          return tDate <= cutoff;
         }).length;
         data.push({ label, count });
       }
     } else if (range === 'weekly') {
       for (let i = 3; i >= 0; i--) {
         const endD = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-        const startD = new Date(endD.getTime() - 7 * 24 * 60 * 60 * 1000);
         const label = `W${4 - i}`;
         const count = deals.filter(deal => {
-          if (!deal.sentAt) return false;
-          const tDate = new Date(deal.sentAt);
-          return tDate >= startD && tDate <= endD;
+          const timestamp = deal.sentAt || deal.createdAt;
+          if (!timestamp) return false;
+          const tDate = new Date(timestamp);
+          return tDate <= endD;
         }).length;
         data.push({ label, count });
       }
