@@ -48,14 +48,18 @@ class Scheduler {
                     const rawItems = await this.scraperRegistry.fetchItemsWithFallback(search.url, config.scrapersOrder);
 
                     if (Array.isArray(rawItems) && rawItems.length > 0) {
-                        const rawIds = new Set(rawItems.map(item => String(item.id)));
+                        const activeRawIds = new Set(
+                            rawItems
+                                .filter(item => !item.isReserved)
+                                .map(item => String(item.id))
+                        );
                         const currentDeals = [...this.dealsManager.getDeals()];
                         let expiredCount = 0;
 
                         for (const deal of currentDeals) {
-                            if (!deal.hidden && (deal.searchUrl === search.url || deal.url === search.url)) {
-                                if (!rawIds.has(String(deal.id))) {
-                                    this.logger.info(`Deal ${deal.id} ("${deal.title}") is no longer active on Avito. Marking hidden...`);
+                            if (deal.searchUrl === search.url || deal.url === search.url) {
+                                if (!activeRawIds.has(String(deal.id))) {
+                                    this.logger.info(`Deal ${deal.id} ("${deal.title}") is reserved or no longer active on Avito. Deleting deal...`);
                                     this.dealsManager.deleteDeal(deal.id);
                                     expiredCount++;
                                 }
@@ -63,7 +67,7 @@ class Scheduler {
                         }
 
                         if (expiredCount > 0) {
-                            this.logger.info(`Marked ${expiredCount} expired deal(s) as hidden for search URL [${search.url}]`);
+                            this.logger.info(`Deleted ${expiredCount} expired/reserved deal(s) for search URL [${search.url}]`);
                         }
                     }
 

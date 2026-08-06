@@ -14,7 +14,8 @@ class DealsManager {
             return [];
         }
         try {
-            return JSON.parse(fs.readFileSync(this.dealsFile, 'utf8'));
+            const parsed = JSON.parse(fs.readFileSync(this.dealsFile, 'utf8'));
+            return Array.isArray(parsed) ? parsed.filter(d => !d.hidden) : [];
         } catch (err) {
             this.logger.error(`Failed to read deals: ${err.message}`);
             return [];
@@ -30,9 +31,9 @@ class DealsManager {
     }
 
     addDeal(deal) {
+        const { hidden, ...cleanDeal } = deal;
         this.deals.unshift({
-            ...deal,
-            hidden: false,
+            ...cleanDeal,
             sentAt: new Date().toISOString()
         });
 
@@ -54,9 +55,9 @@ class DealsManager {
     }
 
     deleteDeal(id) {
-        const deal = this.deals.find(d => String(d.id) === String(id));
-        if (deal) {
-            deal.hidden = true;
+        const index = this.deals.findIndex(d => String(d.id) === String(id));
+        if (index !== -1) {
+            this.deals.splice(index, 1);
             this.saveDeals();
             if (typeof this.onDealsChanged === 'function') {
                 this.onDealsChanged(this.deals);
