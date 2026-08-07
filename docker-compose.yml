@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  avito-parser:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: avito_deal_parser
+    restart: unless-stopped
+    
+    env_file:
+      - .env
+
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+    volumes:
+      - ./data:/app/data
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G

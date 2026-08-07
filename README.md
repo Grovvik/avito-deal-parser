@@ -9,16 +9,16 @@ A powerful monitoring system for Avito listings featuring an extensible architec
 ## Features
 
 * **Extensible Scraper Architecture**: Automatically falls back to HTML scraping if the primary JSON state scraper fails. Automatically maintains and saves fresh browser cookies.
-* **Modern Web Panel (React + Vite)**: A sleek, responsive dashboard to manage search tasks, view deal history with images, and configure application settings on the fly.
-* **Password Protection (SHA-256)**: Protect your Web Panel with a password defined in `.env`. Password is hashed on the client side via SHA-256 before transmission.
+* **Modern Web Panel**: A sleek, responsive dashboard built with React, Vite и Shadcn UI to manage search tasks, view deal history with images, and configure application settings.
+* **Password Protection**: Protect your Web Panel with a password defined in `.env`. Password is hashed on the client side via SHA-256 before transmission.
 * **Real-time Socket.IO Integration**: Fast, bi-directional communication between the Web Panel and backend server.
-* **Multi-Channel Notifications**:
+* **Telegram Bot**: In addition to the web panel, management is also available directly via the Telegram bot.
+* **Variative types of notifications**:
   * **Telegram Bot**: Inline keyboard interface for managing tasks and receiving alerts with direct item links.
   * **Discord Webhook**: Supports embedding deal information with images and proxy support.
   * **MQTT Broker**: Sends clean, standardized JSON deal payloads to home automation services (e.g. Home Assistant).
 * **Notification Management**: Toggle providers on/off and configure settings (Webhooks, Broker URLs, Chat IDs, Proxies) via dedicated modal windows.
 * **Advanced Keyword Filtering**: Filters items using Mandatory (must include all) and Optional (must include at least one) keyword logic.
-* **Sent History Reset**: Clear sent deals history from the dashboard at any time to re-evaluate listings.
 * **Proxy Support**: Connect via proxies for Telegram, Discord, and Playwright browsers.
 
 ## Prerequisites
