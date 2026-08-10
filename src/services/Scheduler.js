@@ -47,13 +47,14 @@ class Scheduler {
                 try {
                     const rawItems = await this.scraperRegistry.fetchItemsWithFallback(search.url, config.scrapersOrder);
 
+                    const currentDeals = [...this.dealsManager.getDeals()];
+
                     if (Array.isArray(rawItems) && rawItems.length > 0) {
                         const activeRawIds = new Set(
                             rawItems
                                 .filter(item => !item.isReserved)
                                 .map(item => String(item.id))
                         );
-                        const currentDeals = [...this.dealsManager.getDeals()];
                         let expiredCount = 0;
 
                         for (const deal of currentDeals) {
@@ -74,6 +75,8 @@ class Scheduler {
                     const deals = this.analyzer.analyze(rawItems, search.maxPrice, search.keywords || search);
 
                     for (const item of deals) {
+                        const existingDeal = currentDeals.find(d => String(d.id) === String(item.id));
+
                         if (!this.configManager.isItemSent(item.id)) {
                             await this.notificationRegistry.broadcastDeal(item, item.price, search.url, config);
 
@@ -87,6 +90,19 @@ class Scheduler {
                                 image: item.image,
                                 searchUrl: search.url
                             });
+                        } else if (existingDeal && item.price < existingDeal.price) {
+                            const priceDropType = config.priceDropNotificationType || 'update';
+                            
+                            if (priceDropType !== 'none') {
+                                const priceDropInfo = {
+                                    oldPrice: existingDeal.price,
+                                    newPrice: item.price,
+                                    type: priceDropType
+                                };
+                                await this.notificationRegistry.broadcastDeal(item, item.price, search.url, config, priceDropInfo);
+                            }
+                            
+                            this.dealsManager.updateDealPrice(item.id, item.price);
                         }
                     }
                 } catch (err) {

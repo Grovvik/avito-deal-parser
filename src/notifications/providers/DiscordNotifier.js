@@ -49,7 +49,7 @@ class DiscordNotifier {
         });
     }
 
-    async sendDealAlert(item, price, url, config) {
+    async sendDealAlert(item, price, url, config, priceDropInfo = null) {
         if (!config || !config.webhookUrl) {
             this.logger.warn('Discord webhook URL not configured, skipping.');
             return;

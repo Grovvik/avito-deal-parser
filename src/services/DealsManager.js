@@ -65,6 +65,17 @@ class DealsManager {
         }
     }
 
+    updateDealPrice(id, newPrice) {
+        const deal = this.deals.find(d => String(d.id) === String(id));
+        if (deal) {
+            deal.price = newPrice;
+            this.saveDeals();
+            if (typeof this.onDealsChanged === 'function') {
+                this.onDealsChanged(this.deals);
+            }
+        }
+    }
+
     clearDeals() {
         this.deals = [];
         this.saveDeals();

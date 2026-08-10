@@ -20,6 +20,7 @@ import DashboardPage from './pages/DashboardPage';
 import DealsPage from './pages/DealsPage';
 import SearchesPage from './pages/SearchesPage';
 import SettingsPage from './pages/SettingsPage';
+import LogsPage from './pages/LogsPage';
 
 // Utils
 import { hashPassword } from './utils/crypto';
@@ -32,6 +33,7 @@ function App() {
   const [status, setStatus] = useState(null);
   const [config, setConfig] = useState(null);
   const [deals, setDeals] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const visibleDeals = useMemo(() => deals.filter(deal => !deal.hidden), [deals]);
 
@@ -129,6 +131,18 @@ function App() {
 
     socket.on('deals_update', (newDeals) => {
       setDeals(newDeals);
+    });
+
+    socket.on('logs_history', (history) => {
+      setLogs(history || []);
+    });
+
+    socket.on('new_log', (logEntry) => {
+      setLogs(prev => {
+        const newLogs = [...prev, logEntry];
+        if (newLogs.length > 1000) return newLogs.slice(-1000);
+        return newLogs;
+      });
     });
 
     socket.on('auth_success', ({ passwordHash }) => {
@@ -380,6 +394,13 @@ function App() {
             />
           )}
 
+          {activeTab === 'logs' && (
+            <LogsPage
+              t={t}
+              logs={logs}
+            />
+          )}
+
           {activeTab === 'settings' && (
             <SettingsPage
               t={t}
@@ -393,6 +414,7 @@ function App() {
               openCookiesModal={openCookiesModal}
               openNotificationModal={openNotificationModal}
               handleNotificationToggle={handleNotificationToggle}
+              saveConfig={saveConfig}
             />
           )}
         </div>

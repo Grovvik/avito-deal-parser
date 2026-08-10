@@ -92,7 +92,15 @@ const resources = {
       "wsConnected": "WebSocket Connected",
       "pollingFallback": "HTTP Polling Active (Fallback)",
       "dealsCount": "deals",
-      "maxPriceShort": "Max"
+      "maxPriceShort": "Max",
+      "logs": "Logs",
+      "logLevel": "Log Level",
+      "maxLines": "Max Lines",
+      "priceDropAction": "Price Drop Action",
+      "sendAsPriceUpdate": "Send as Price Update",
+      "sendAsNewDeal": "Send as New Deal",
+      "doNotSend": "Do Not Send",
+      "noLogsMatch": "No logs match the current filter."
     }
   },
   ru: {
@@ -185,7 +193,15 @@ const resources = {
       "wsConnected": "WebSocket подключен",
       "pollingFallback": "Опрос по HTTP активен",
       "dealsCount": "предложений",
-      "maxPriceShort": "Макс"
+      "maxPriceShort": "Макс",
+      "logs": "Логи",
+      "logLevel": "Уровень логов",
+      "maxLines": "Макс. строк",
+      "priceDropAction": "Действие при снижении цены",
+      "sendAsPriceUpdate": "Отправлять как обновление цены",
+      "sendAsNewDeal": "Отправлять как новое предложение",
+      "doNotSend": "Не отправлять",
+      "noLogsMatch": "Нет логов, соответствующих фильтру."
     }
   }
 };

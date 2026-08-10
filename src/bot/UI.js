@@ -121,7 +121,7 @@ class UI {
                `Choose a parameter to edit:`;
     }
 
-    static renderDealNotification(item, price, url) {
+    static renderDealNotification(item, price, url, priceDropInfo = null) {
         const location = item.geo?.formattedAddress || item.location?.name || item.location || 'Not specified';
         const category = item.category?.name || item.category || 'Not specified';
         const ratingInfo = item.rating?.score 
@@ -134,10 +134,18 @@ class UI {
         if (ratingInfo) {
             infoBlock += `\n👤 <b>Seller:</b> ${this.escapeHtml(ratingInfo)}`;
         }
+
+        const isUpdate = priceDropInfo && priceDropInfo.type === 'update';
+        const titleText = isUpdate ? i18n.t('price_update_alert') : i18n.t('deal_alert');
+        
+        let priceText = `<code>${price} ₽</code>`;
+        if (isUpdate && priceDropInfo.oldPrice) {
+            priceText = `<s>${priceDropInfo.oldPrice} ₽</s> ➡️ <code>${price} ₽</code>`;
+        }
     
-        return `${i18n.t('deal_alert')}\n\n` +
+        return `${titleText}\n\n` +
                `📌 <b>Title:</b> ${this.escapeHtml(item.title)}\n` +
-               `💰 <b>${i18n.t('price')}:</b> <code>${price} ₽</code>\n` +
+               `💰 <b>${i18n.t('price')}:</b> ${priceText}\n` +
                `🆔 <b>ID:</b> <code>${item.id}</code>\n\n` +
                `${infoBlock}\n\n` +
                `🔗 <a href="${item.url || url}">Open on Avito</a>`;

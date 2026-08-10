@@ -15,8 +15,12 @@ const SettingsPage = ({
   status,
   openCookiesModal,
   openNotificationModal,
-  handleNotificationToggle
+  handleNotificationToggle,
+  saveConfig
 }) => {
+  const handlePriceDropTypeChange = (e) => {
+    saveConfig({ ...config, priceDropNotificationType: e.target.value });
+  };
   return (
     <div className="space-y-6">
       <Card>
@@ -59,6 +63,18 @@ const SettingsPage = ({
             <Button variant="outline" size="sm" onClick={openCookiesModal}>
               {t('updateCookies')}
             </Button>
+          </div>
+          <div className="flex items-center space-x-3 sm:pl-6 sm:border-l">
+            <span className="text-sm font-medium">{t('priceDropAction')}:</span>
+            <select
+              value={config.priceDropNotificationType || 'update'}
+              onChange={handlePriceDropTypeChange}
+              className="px-2 h-9 text-sm rounded-md border border-input bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="update">{t('sendAsPriceUpdate')}</option>
+              <option value="new">{t('sendAsNewDeal')}</option>
+              <option value="none">{t('doNotSend')}</option>
+            </select>
           </div>
         </div>
       </Card>

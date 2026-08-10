@@ -8,11 +8,11 @@ class TelegramNotifier {
         this.logger = new Logger('TelegramNotifier');
     }
 
-    async sendDealAlert(item, price, url, config) {
+    async sendDealAlert(item, price, url, config, priceDropInfo = null) {
         const targetChatId = config?.chatId || this.adminId || process.env.TELEGRAM_ADMIN_ID;
         if (!this.bot || !targetChatId) return;
         
-        const message = UI.renderDealNotification(item, price, url);
+        const message = UI.renderDealNotification(item, price, url, priceDropInfo);
         try {
             await this.bot.api.sendMessage(targetChatId, message, {
                 parse_mode: 'HTML',

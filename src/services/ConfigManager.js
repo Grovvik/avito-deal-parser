@@ -33,7 +33,8 @@ class ConfigManager {
                     telegram: { enabled: true },
                     discord: { enabled: false, webhookUrl: '' },
                     mqtt: { enabled: false, brokerUrl: '', topic: '' }
-                }
+                },
+                priceDropNotificationType: 'update'
             };
             this.config = initialConfig;
             this.saveConfig(initialConfig);

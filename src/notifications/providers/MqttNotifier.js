@@ -29,7 +29,7 @@ class MqttNotifier {
         return client;
     }
 
-    async sendDealAlert(item, price, url, config) {
+    async sendDealAlert(item, price, url, config, priceDropInfo = null) {
         if (!config || !config.brokerUrl || !config.topic) {
             this.logger.warn('MQTT broker URL or topic not configured, skipping.');
             return;

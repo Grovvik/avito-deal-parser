@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, List, Settings, Search, Server, LogOut, Wifi, RefreshCw, X } from 'lucide-react';
+import { LayoutDashboard, List, Settings, Search, Server, LogOut, Wifi, RefreshCw, X, Activity } from 'lucide-react';
 import avitoLogo from '../../assets/avito.svg';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
@@ -56,6 +56,7 @@ const Sidebar = ({
           <SidebarItem icon={LayoutDashboard} label={t('dashboard')} active={activeTab === 'dashboard'} onClick={() => handleTabClick('dashboard')} />
           <SidebarItem icon={List} label={t('deals')} active={activeTab === 'deals'} onClick={() => handleTabClick('deals')} />
           <SidebarItem icon={Search} label={t('searches')} active={activeTab === 'searches'} onClick={() => handleTabClick('searches')} />
+          <SidebarItem icon={Activity} label={t('logs')} active={activeTab === 'logs'} onClick={() => handleTabClick('logs')} />
           <SidebarItem icon={Settings} label={t('settings')} active={activeTab === 'settings'} onClick={() => handleTabClick('settings')} />
         </div>
         <div className="p-4 border-t text-sm text-muted-foreground flex items-center justify-between">

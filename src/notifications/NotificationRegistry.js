@@ -27,8 +27,9 @@ class NotificationRegistry {
      * @param {number} price The extracted price
      * @param {string} url The search URL
      * @param {object} config The current application configuration
+     * @param {object} [priceDropInfo] Optional price drop info { oldPrice, newPrice, type }
      */
-    async broadcastDeal(item, price, url, config) {
+    async broadcastDeal(item, price, url, config, priceDropInfo = null) {
         const notificationsConfig = config.notifications || {};
         
         for (const [id, providerData] of this.providers.entries()) {
@@ -37,7 +38,7 @@ class NotificationRegistry {
             
             if (isEnabled) {
                 try {
-                    await providerData.instance.sendDealAlert(item, price, url, notificationsConfig[id]);
+                    await providerData.instance.sendDealAlert(item, price, url, notificationsConfig[id], priceDropInfo);
                 } catch (err) {
                     this.logger.error(`Failed to send alert via ${providerData.name}: ${err.message}`);
                 }

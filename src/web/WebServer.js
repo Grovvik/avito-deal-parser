@@ -43,6 +43,13 @@ class WebServer {
             this.dealsManager.onDealsChanged = () => this.broadcastDeals();
         }
 
+        // Listen for new logs globally
+        Logger.globalEmitter.on('new_log', (logEntry) => {
+            if (this.io) {
+                this.io.emit('new_log', logEntry);
+            }
+        });
+
         this.setupMiddleware();
         this.setupRoutes();
         this.setupSocket();
@@ -67,6 +74,7 @@ class WebServer {
         socket.emit('status_update', this.getStatusPayload());
         socket.emit('config_update', this.configManager.config);
         socket.emit('deals_update', this.dealsManager.getDeals());
+        socket.emit('logs_history', Logger.history);
     }
 
     setupSocket() {

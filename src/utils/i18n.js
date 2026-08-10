@@ -29,6 +29,7 @@ const en = {
     started: 'Started',
     paused: 'Paused',
     deal_alert: '🚨 <b>New Deal Found!</b>',
+    price_update_alert: '🔄 <b>Price Updated!</b>',
     price: 'Price',
     url: 'URL',
     search_url: 'Search URL'
@@ -65,6 +66,7 @@ const ru = {
     started: 'Запущено',
     paused: 'Остановлено',
     deal_alert: '🚨 <b>Новое предложение!</b>',
+    price_update_alert: '🔄 <b>Обновление цены!</b>',
     price: 'Цена',
     url: 'Ссылка',
     search_url: 'Ссылка поиска'
