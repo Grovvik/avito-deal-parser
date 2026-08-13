@@ -13,6 +13,8 @@
     "https-proxy-agent": "^9.1.0",
     "mqtt": "^5.15.2",
     "playwright": "^1.62.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "socket.io": "^4.8.3",
     "socks-proxy-agent": "^10.1.0"
   }
