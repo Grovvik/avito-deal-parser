@@ -62,10 +62,6 @@ class AvitoHtmlScraper {
                 'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Windows"',
-                'sec-fetch-dest': 'document',
-                'sec-fetch-mode': 'navigate',
-                'sec-fetch-site': 'none',
-                'sec-fetch-user': '?1',
                 'upgrade-insecure-requests': '1'
             },
             ...(storageState && { storageState })
