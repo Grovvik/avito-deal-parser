@@ -1,6 +1,6 @@
 {
   "name": "avito-deal-parser",
-  "version": "2.0.1",
+  "version": "2.1.1",
   "scripts": {
     "start": "node ./index.js"
   },
@@ -9,6 +9,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "got-scraping": "^4.2.1",
     "grammy": "^1.45.1",
     "https-proxy-agent": "^9.1.0",
     "mqtt": "^5.15.2",
