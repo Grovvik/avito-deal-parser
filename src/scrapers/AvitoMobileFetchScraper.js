@@ -118,8 +118,16 @@ class AvitoMobileFetchScraper {
         // dynamically import got-scraping because it is an ES module
         const { gotScraping } = await import('got-scraping');
 
-        // convert www.avito.ru to m.avito.ru if needed
-        const url = targetUrl.replace('www.avito.ru', 'm.avito.ru');
+        // convert any avito url to https://m.avito.ru
+        let url = targetUrl;
+        try {
+            const parsed = new URL(targetUrl);
+            parsed.hostname = 'm.avito.ru';
+            parsed.protocol = 'https:';
+            url = parsed.toString();
+        } catch (e) {
+            url = targetUrl.replace('www.avito.ru', 'm.avito.ru').replace('avito.ru', 'm.avito.ru');
+        }
 
         this.logger.info(`Fetching mobile page: ${url}`);
 
