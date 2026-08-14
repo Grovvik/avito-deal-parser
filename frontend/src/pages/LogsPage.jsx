@@ -36,10 +36,10 @@ function LogsPage({ t, logs }) {
 
   const getLevelColor = (levelName) => {
     switch (levelName) {
-      case 'INFO': return 'text-green-500';
-      case 'WARN': return 'text-yellow-500';
-      case 'ERROR': return 'text-red-500';
-      case 'DEBUG': return 'text-gray-500';
+      case 'INFO': return 'text-emerald-600 dark:text-green-400';
+      case 'WARN': return 'text-amber-600 dark:text-yellow-400';
+      case 'ERROR': return 'text-red-600 dark:text-red-400';
+      case 'DEBUG': return 'text-slate-500 dark:text-gray-400';
       default: return 'text-foreground';
     }
   };
@@ -72,17 +72,17 @@ function LogsPage({ t, logs }) {
         </div>
       </div>
 
-      <div className="flex-1 rounded-md border border-border bg-black text-gray-200 overflow-y-auto p-4 font-mono text-sm shadow-inner">
+      <div className="flex-1 rounded-md border border-border bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-y-auto p-4 font-mono text-sm shadow-inner">
         {visibleLogs.length === 0 ? (
-          <div className="text-gray-500 italic">{t('noLogsMatch')}</div>
+          <div className="text-muted-foreground italic">{t('noLogsMatch')}</div>
         ) : (
           visibleLogs.map((log, i) => (
             <div key={i} className="mb-1 leading-relaxed">
-              <span className="text-gray-500">[{log.timestamp}]</span>{' '}
+              <span className="text-slate-400 dark:text-slate-500">[{log.timestamp}]</span>{' '}
               <span className={`font-bold ${getLevelColor(log.levelName)}`}>
                 {log.levelName}
               </span>{' '}
-              {log.name && <span className="text-blue-400">{log.name}:</span>}{' '}
+              {log.name && <span className="text-blue-600 dark:text-blue-400 font-semibold">{log.name}:</span>}{' '}
               <span>{log.message}</span>
             </div>
           ))
