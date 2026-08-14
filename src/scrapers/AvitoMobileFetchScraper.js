@@ -71,9 +71,10 @@ class AvitoMobileFetchScraper {
 
         const visited = new Set();
 
+        const allItems = [];
         const findItemsArray = (current) => {
-            if (!current || typeof current !== 'object') return null;
-            if (visited.has(current)) return null;
+            if (!current || typeof current !== 'object') return;
+            if (visited.has(current)) return;
             visited.add(current);
 
             if (Array.isArray(current)) {
@@ -81,28 +82,36 @@ class AvitoMobileFetchScraper {
                     const unwrapped = current.map(c => (c && typeof c === 'object' && c.value && typeof c.value === 'object') ? c.value : c);
                     const validItems = unwrapped.filter(isAvitoItem);
                     if (validItems.length > 0 && (validItems.length / unwrapped.length) >= 0.3) {
-                        return validItems;
+                        allItems.push(...validItems);
                     }
                 }
                 for (const element of current) {
-                    const res = findItemsArray(element);
-                    if (res) return res;
+                    findItemsArray(element);
                 }
-                return null;
+                return;
             }
 
             for (const key of Object.keys(current)) {
                 if (key === 'i18n' || key === 'translations') continue;
-                const res = findItemsArray(current[key]);
-                if (res) return res;
+                findItemsArray(current[key]);
             }
-            return null;
         };
 
         const searchRoot = stateData.state?.loaderData || stateData.loaderData || stateData;
-        const rawItems = findItemsArray(searchRoot) || [];
+        findItemsArray(searchRoot);
+        
+        // Remove duplicates by ID
+        const uniqueItems = [];
+        const seenIds = new Set();
+        for (const item of allItems) {
+            const id = String(item.id || item.itemId);
+            if (!seenIds.has(id)) {
+                seenIds.add(id);
+                uniqueItems.push(item);
+            }
+        }
 
-        return rawItems.map(item => this.normalizeItem(item));
+        return uniqueItems.map(item => this.normalizeItem(item));
     }
 
     async fetchRawItems(targetUrl) {
