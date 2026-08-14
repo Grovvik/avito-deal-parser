@@ -3,10 +3,21 @@ import React, { useState, useEffect, useRef } from 'react';
 function LogsPage({ t, logs }) {
   const [logLevel, setLogLevel] = useState('1'); // 1: INFO, 2: WARN, 3: ERROR, 4: DEBUG
   const [maxLines, setMaxLines] = useState(100);
+  const containerRef = useRef(null);
   const endOfLogsRef = useRef(null);
+  const isAtBottomRef = useRef(true);
+
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+    isAtBottomRef.current = isAtBottom;
+  };
 
   useEffect(() => {
-    endOfLogsRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isAtBottomRef.current) {
+      endOfLogsRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [logs, maxLines, logLevel]);
 
   const levelOptions = [
@@ -36,11 +47,11 @@ function LogsPage({ t, logs }) {
 
   const getLevelColor = (levelName) => {
     switch (levelName) {
-      case 'INFO': return 'text-emerald-600 dark:text-green-400';
-      case 'WARN': return 'text-amber-600 dark:text-yellow-400';
-      case 'ERROR': return 'text-red-600 dark:text-red-400';
-      case 'DEBUG': return 'text-slate-500 dark:text-gray-400';
-      default: return 'text-foreground';
+      case 'INFO': return 'text-emerald-600 dark:text-emerald-400 font-semibold';
+      case 'WARN': return 'text-amber-600 dark:text-amber-400 font-semibold';
+      case 'ERROR': return 'text-destructive font-semibold';
+      case 'DEBUG': return 'text-muted-foreground font-semibold';
+      default: return 'text-card-foreground';
     }
   };
 
@@ -72,18 +83,22 @@ function LogsPage({ t, logs }) {
         </div>
       </div>
 
-      <div className="flex-1 rounded-md border border-border bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-y-auto p-4 font-mono text-sm shadow-inner">
+      <div 
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex-1 rounded-xl border border-border bg-card text-card-foreground overflow-y-auto p-4 font-mono text-xs sm:text-sm shadow-sm"
+      >
         {visibleLogs.length === 0 ? (
           <div className="text-muted-foreground italic">{t('noLogsMatch')}</div>
         ) : (
           visibleLogs.map((log, i) => (
             <div key={i} className="mb-1 leading-relaxed">
-              <span className="text-slate-400 dark:text-slate-500">[{log.timestamp}]</span>{' '}
-              <span className={`font-bold ${getLevelColor(log.levelName)}`}>
+              <span className="text-muted-foreground select-none">[{log.timestamp}]</span>{' '}
+              <span className={getLevelColor(log.levelName)}>
                 {log.levelName}
               </span>{' '}
-              {log.name && <span className="text-blue-600 dark:text-blue-400 font-semibold">{log.name}:</span>}{' '}
-              <span>{log.message}</span>
+              {log.name && <span className="text-foreground font-medium opacity-80">{log.name}:</span>}{' '}
+              <span className="text-card-foreground">{log.message}</span>
             </div>
           ))
         )}
