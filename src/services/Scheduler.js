@@ -111,7 +111,7 @@ class Scheduler {
                 }
 
                 if (i < searches.length - 1) {
-                    const delayMs = Math.floor(Math.random() * 4000) + 2000;
+                    const delayMs = Math.floor(Math.random() * 5000) + 5000; // 5 to 10 seconds delay
                     this.logger.info(`Waiting ${(delayMs / 1000).toFixed(1)}s before fetching next search task...`);
                     await new Promise(resolve => setTimeout(resolve, delayMs));
                 }
