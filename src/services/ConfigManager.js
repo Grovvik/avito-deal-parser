@@ -83,6 +83,11 @@ class ConfigManager {
         this.saveSentIds();
     }
 
+    removeSentId(id) {
+        this.sentIds.delete(String(id));
+        this.saveSentIds();
+    }
+
     clearSentIds() {
         this.sentIds.clear();
         this.saveSentIds();

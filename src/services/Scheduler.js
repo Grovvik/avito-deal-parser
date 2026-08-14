@@ -62,6 +62,7 @@ class Scheduler {
                                 if (!activeRawIds.has(String(deal.id))) {
                                     this.logger.info(`Deal ${deal.id} ("${deal.title}") is reserved or no longer active on Avito. Deleting deal...`);
                                     this.dealsManager.deleteDeal(deal.id);
+                                    this.configManager.removeSentId(deal.id);
                                     expiredCount++;
                                 }
                             }
