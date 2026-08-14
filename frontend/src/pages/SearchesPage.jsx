@@ -21,7 +21,10 @@ const SearchesPage = ({ t, config, openSearchModal, setDeleteSearchIdx }) => {
                   <div className="font-medium truncate" title={s.url}>{s.url}</div>
                   <div className="text-sm text-muted-foreground mt-1 flex gap-4">
                     {s.maxPrice && <span>{t('maxPriceShort')}: {s.maxPrice} ₽</span>}
-                    {s.mandatoryKeywords?.length > 0 && <span>{t('mustHave')}: {s.mandatoryKeywords.join(', ')}</span>}
+                    {s.keywordGroups?.length > 0 
+                      ? <span>{t('keywordGroups')}: {s.keywordGroups.map(g => g.join(' | ')).join(', ')}</span>
+                      : s.mandatoryKeywords?.length > 0 && <span>{t('mustHave')}: {s.mandatoryKeywords.join(', ')}</span>
+                    }
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-2">

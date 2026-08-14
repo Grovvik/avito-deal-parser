@@ -40,7 +40,7 @@ function App() {
   // Search Modal State
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [editingSearchIndex, setEditingSearchIndex] = useState(null);
-  const [searchForm, setSearchForm] = useState({ url: '', maxPrice: '', mandatoryKeywords: '', optionalKeywords: '' });
+  const [searchForm, setSearchForm] = useState({ url: '', maxPrice: '', keywordGroups: [''] });
 
   // Confirmation Modals State
   const [deleteDealId, setDeleteDealId] = useState(null);
@@ -272,18 +272,53 @@ function App() {
   };
 
   // Searches Logic
+  const addKeywordGroup = () => {
+    setSearchForm(prev => ({
+      ...prev,
+      keywordGroups: [...prev.keywordGroups, '']
+    }));
+  };
+
+  const updateKeywordGroup = (index, value) => {
+    setSearchForm(prev => {
+      const newGroups = [...prev.keywordGroups];
+      newGroups[index] = value;
+      return { ...prev, keywordGroups: newGroups };
+    });
+  };
+
+  const removeKeywordGroup = (index) => {
+    setSearchForm(prev => {
+      const newGroups = prev.keywordGroups.filter((_, i) => i !== index);
+      return { ...prev, keywordGroups: newGroups.length > 0 ? newGroups : [''] };
+    });
+  };
+
   const openSearchModal = (index = null) => {
     if (index !== null) {
       const s = config.searches[index];
+      
+      let initialKeywordGroups = [];
+      if (s.keywordGroups) {
+        initialKeywordGroups = s.keywordGroups.map(group => group.join(', '));
+      } else {
+        if (s.mandatoryKeywords && s.mandatoryKeywords.length > 0) {
+          initialKeywordGroups.push(...s.mandatoryKeywords);
+        }
+        if (s.optionalKeywords && s.optionalKeywords.length > 0) {
+          initialKeywordGroups.push(s.optionalKeywords.join(', '));
+        }
+      }
+      if (initialKeywordGroups.length === 0) initialKeywordGroups = [''];
+
       setSearchForm({
         url: s.url || '',
         maxPrice: s.maxPrice || '',
-        mandatoryKeywords: (s.mandatoryKeywords || []).join(', '),
-        optionalKeywords: (s.optionalKeywords || []).join(', ')
+        keywordGroups: initialKeywordGroups
       });
       setEditingSearchIndex(index);
     } else {
-      setSearchForm({ url: '', maxPrice: '', mandatoryKeywords: '', optionalKeywords: '' });
+      setSearchForm({ url: '', maxPrice: '', keywordGroups: [''] });
       setEditingSearchIndex(null);
     }
     setSearchModalOpen(true);
@@ -291,11 +326,15 @@ function App() {
 
   const saveSearch = async (e) => {
     e.preventDefault();
+    
+    const parsedKeywordGroups = searchForm.keywordGroups
+      .map(groupStr => groupStr.split(',').map(s => s.trim()).filter(Boolean))
+      .filter(group => group.length > 0);
+
     const newSearch = {
       url: searchForm.url,
       maxPrice: searchForm.maxPrice ? Number(searchForm.maxPrice) : null,
-      mandatoryKeywords: searchForm.mandatoryKeywords.replace(/,/g, ' ').split(/\s+/).map(s => s.trim()).filter(Boolean),
-      optionalKeywords: searchForm.optionalKeywords.replace(/,/g, ' ').split(/\s+/).map(s => s.trim()).filter(Boolean)
+      keywordGroups: parsedKeywordGroups
     };
 
     const newSearches = [...(config.searches || [])];
@@ -437,18 +476,38 @@ function App() {
             onChange={e => setSearchForm({ ...searchForm, maxPrice: e.target.value })}
             placeholder={t('maxPricePlaceholder')}
           />
-          <Input
-            label={t('mandatoryKeywords')}
-            value={searchForm.mandatoryKeywords}
-            onChange={e => setSearchForm({ ...searchForm, mandatoryKeywords: e.target.value })}
-            placeholder={t('mandatoryKwPlaceholder')}
-          />
-          <Input
-            label={t('optionalKeywords')}
-            value={searchForm.optionalKeywords}
-            onChange={e => setSearchForm({ ...searchForm, optionalKeywords: e.target.value })}
-            placeholder={t('optionalKwPlaceholder')}
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t('keywordGroups')}</label>
+            {searchForm.keywordGroups.map((group, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Input
+                    value={group}
+                    onChange={e => updateKeywordGroup(index, e.target.value)}
+                    placeholder={t('keywordGroupPlaceholder')}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="flex-shrink-0 w-10 h-10"
+                  onClick={() => removeKeywordGroup(index)}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              onClick={addKeywordGroup}
+            >
+              + {t('addKeywordGroup')}
+            </Button>
+          </div>
           <div className="pt-4 flex justify-end space-x-2 border-t">
             <Button variant="ghost" onClick={() => setSearchModalOpen(false)}>{t('cancel')}</Button>
             <Button type="submit">{t('save')}</Button>

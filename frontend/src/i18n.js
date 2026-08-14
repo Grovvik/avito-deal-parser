@@ -100,7 +100,10 @@ const resources = {
       "sendAsPriceUpdate": "Send as Price Update",
       "sendAsNewDeal": "Send as New Deal",
       "doNotSend": "Do Not Send",
-      "noLogsMatch": "No logs match the current filter."
+      "noLogsMatch": "No logs match the current filter.",
+      "keywordGroups": "Keyword Groups",
+      "addKeywordGroup": "Add Group",
+      "keywordGroupPlaceholder": "e.g. word1, word2"
     }
   },
   ru: {
@@ -201,7 +204,10 @@ const resources = {
       "sendAsPriceUpdate": "Отправлять как обновление цены",
       "sendAsNewDeal": "Отправлять как новое предложение",
       "doNotSend": "Не отправлять",
-      "noLogsMatch": "Нет логов, соответствующих фильтру."
+      "noLogsMatch": "Нет логов, соответствующих фильтру.",
+      "keywordGroups": "Группы ключевых слов",
+      "addKeywordGroup": "Добавить группу",
+      "keywordGroupPlaceholder": "например, слово1, слово2"
     }
   }
 };

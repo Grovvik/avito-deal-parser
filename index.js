@@ -11,6 +11,7 @@ const DealAnalyzer = require('./src/utils/DealAnalyzer');
 const ScraperRegistry = require('./src/scrapers/ScraperRegistry');
 const AvitoJsonScraper = require('./src/scrapers/AvitoJsonScraper');
 const AvitoHtmlScraper = require('./src/scrapers/AvitoHtmlScraper');
+const AvitoMobileFetchScraper = require('./src/scrapers/AvitoMobileFetchScraper');
 
 // Notifications
 const NotificationRegistry = require('./src/notifications/NotificationRegistry');
@@ -33,6 +34,7 @@ const analyzer = new DealAnalyzer();
 
 // Setup Scraper Registry
 const scraperRegistry = new ScraperRegistry();
+scraperRegistry.register('mobile_fetch', 'Avito Mobile Fetch', new AvitoMobileFetchScraper(AVITO_PROXY));
 scraperRegistry.register('json', 'Avito JSON Scraper', new AvitoJsonScraper(configManager.getCookiesFilePath(), AVITO_PROXY));
 scraperRegistry.register('html', 'Avito HTML Scraper', new AvitoHtmlScraper(AVITO_PROXY, configManager.getCookiesFilePath()));
 

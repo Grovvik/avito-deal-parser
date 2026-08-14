@@ -20,34 +20,55 @@ class DealAnalyzer {
     }
 
     normalizeKeywords(keywordsConfig) {
-        if (!keywordsConfig) return { mandatory: [], optional: [], exclude: [] };
+        if (!keywordsConfig) return { keywordGroups: [], exclude: [] };
 
         if (Array.isArray(keywordsConfig)) {
-            return { mandatory: this.extractWords(keywordsConfig), optional: [], exclude: [] };
+            const words = this.extractWords(keywordsConfig);
+            return { keywordGroups: words.map(w => [w]), exclude: [] };
         }
 
         if (typeof keywordsConfig === 'object') {
+            const excludeRaw = keywordsConfig.excludeKeywords || keywordsConfig.exclude || keywordsConfig.negative || [];
+            const exclude = this.extractWords(excludeRaw);
+
+            // New format
+            if (keywordsConfig.keywordGroups) {
+                const keywordGroups = keywordsConfig.keywordGroups
+                    .map(g => this.extractWords(g))
+                    .filter(g => g.length > 0);
+                return { keywordGroups, exclude };
+            }
+
+            // Legacy format migration
             const mandatoryRaw = keywordsConfig.mandatoryKeywords || keywordsConfig.mandatory || keywordsConfig.required || [];
             const optionalRaw = keywordsConfig.optionalKeywords || keywordsConfig.optional || [];
-            const excludeRaw = keywordsConfig.excludeKeywords || keywordsConfig.exclude || keywordsConfig.negative || [];
 
-            return {
-                mandatory: this.extractWords(mandatoryRaw),
-                optional: this.extractWords(optionalRaw),
-                exclude: this.extractWords(excludeRaw)
-            };
+            const mandatoryWords = this.extractWords(mandatoryRaw);
+            const optionalWords = this.extractWords(optionalRaw);
+            
+            const keywordGroups = [];
+            mandatoryWords.forEach(w => keywordGroups.push([w]));
+            if (optionalWords.length > 0) {
+                keywordGroups.push(optionalWords);
+            }
+
+            return { keywordGroups, exclude };
         }
 
         if (typeof keywordsConfig === 'string') {
-            return { mandatory: this.extractWords(keywordsConfig), optional: [], exclude: [] };
+            const words = this.extractWords(keywordsConfig);
+            return { keywordGroups: words.map(w => [w]), exclude: [] };
         }
 
-        return { mandatory: [], optional: [], exclude: [] };
+        return { keywordGroups: [], exclude: [] };
     }
 
-    isAccessoryTitle(title, mandatoryUserWords, optionalUserWords) {
+    isAccessoryTitle(title, keywordGroups) {
         const titleLower = title.toLowerCase();
-        const userWordsSet = new Set([...mandatoryUserWords, ...optionalUserWords]);
+        
+        // Flatten all words from all groups into a single set
+        const allUserWords = keywordGroups.flat();
+        const userWordsSet = new Set(allUserWords);
 
         for (const stopWord of this.DEFAULT_ACCESSORY_STOP_WORDS) {
             if (titleLower.includes(stopWord)) {
@@ -60,7 +81,7 @@ class DealAnalyzer {
     }
 
     analyze(items, maxPrice, keywordsConfig) {
-        const { mandatory, optional, exclude } = this.normalizeKeywords(keywordsConfig);
+        const { keywordGroups, exclude } = this.normalizeKeywords(keywordsConfig);
 
         const filtered = items.filter(item => {
             if (item.isReserved) return false;
@@ -76,18 +97,15 @@ class DealAnalyzer {
                 if (hasExcluded) return false;
             }
 
-            if (this.isAccessoryTitle(item.title, mandatory, optional)) {
+            if (this.isAccessoryTitle(item.title, keywordGroups)) {
                 return false;
             }
 
-            if (mandatory.length > 0) {
-                const hasAllMandatory = mandatory.every(word => fullText.includes(word));
-                if (!hasAllMandatory) return false;
-            }
-
-            if (optional.length > 0) {
-                const hasAnyOptional = optional.some(word => fullText.includes(word));
-                if (!hasAnyOptional) return false;
+            if (keywordGroups.length > 0) {
+                const matchesAllGroups = keywordGroups.every(group => {
+                    return group.some(word => fullText.includes(word));
+                });
+                if (!matchesAllGroups) return false;
             }
 
             return true;
