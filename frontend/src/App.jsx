@@ -9,6 +9,7 @@ import ConfirmModal from './components/ConfirmModal';
 import { useToast } from './components/Toast';
 import Input from './components/ui/Input';
 import Button from './components/ui/Button';
+import Switch from './components/ui/Switch';
 
 // Layout
 import Sidebar from './components/layout/Sidebar';
@@ -40,7 +41,13 @@ function App() {
   // Search Modal State
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [editingSearchIndex, setEditingSearchIndex] = useState(null);
-  const [searchForm, setSearchForm] = useState({ url: '', maxPrice: '', keywordGroups: [''] });
+  const [searchForm, setSearchForm] = useState({
+    url: '',
+    maxPrice: '',
+    keywordGroups: [''],
+    includeReserved: false,
+    onlyDelivery: false
+  });
 
   // Confirmation Modals State
   const [deleteDealId, setDeleteDealId] = useState(null);
@@ -314,11 +321,19 @@ function App() {
       setSearchForm({
         url: s.url || '',
         maxPrice: s.maxPrice || '',
-        keywordGroups: initialKeywordGroups
+        keywordGroups: initialKeywordGroups,
+        includeReserved: Boolean(s.includeReserved || s.sendReserved),
+        onlyDelivery: Boolean(s.onlyDelivery || s.requireDelivery)
       });
       setEditingSearchIndex(index);
     } else {
-      setSearchForm({ url: '', maxPrice: '', keywordGroups: [''] });
+      setSearchForm({
+        url: '',
+        maxPrice: '',
+        keywordGroups: [''],
+        includeReserved: false,
+        onlyDelivery: false
+      });
       setEditingSearchIndex(null);
     }
     setSearchModalOpen(true);
@@ -334,7 +349,9 @@ function App() {
     const newSearch = {
       url: searchForm.url,
       maxPrice: searchForm.maxPrice ? Number(searchForm.maxPrice) : null,
-      keywordGroups: parsedKeywordGroups
+      keywordGroups: parsedKeywordGroups,
+      includeReserved: Boolean(searchForm.includeReserved),
+      onlyDelivery: Boolean(searchForm.onlyDelivery)
     };
 
     const newSearches = [...(config.searches || [])];
@@ -508,6 +525,31 @@ function App() {
               + {t('addKeywordGroup')}
             </Button>
           </div>
+
+          <div className="space-y-3 pt-2 border-t">
+            <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20">
+              <div className="pr-3">
+                <div className="text-sm font-medium">{t('includeReserved')}</div>
+                <div className="text-xs text-muted-foreground">{t('includeReservedDesc')}</div>
+              </div>
+              <Switch
+                checked={searchForm.includeReserved}
+                onChange={val => setSearchForm({ ...searchForm, includeReserved: val })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20">
+              <div className="pr-3">
+                <div className="text-sm font-medium">{t('onlyDelivery')}</div>
+                <div className="text-xs text-muted-foreground">{t('onlyDeliveryDesc')}</div>
+              </div>
+              <Switch
+                checked={searchForm.onlyDelivery}
+                onChange={val => setSearchForm({ ...searchForm, onlyDelivery: val })}
+              />
+            </div>
+          </div>
+
           <div className="pt-4 flex justify-end space-x-2 border-t">
             <Button variant="ghost" onClick={() => setSearchModalOpen(false)}>{t('cancel')}</Button>
             <Button type="submit">{t('save')}</Button>

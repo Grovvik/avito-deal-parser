@@ -19,12 +19,22 @@ const SearchesPage = ({ t, config, openSearchModal, setDeleteSearchIdx }) => {
               <div key={i} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                 <div className="flex-1 overflow-hidden mr-4">
                   <div className="font-medium truncate" title={s.url}>{s.url}</div>
-                  <div className="text-sm text-muted-foreground mt-1 flex gap-4">
+                  <div className="text-sm text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-1 items-center">
                     {s.maxPrice && <span>{t('maxPriceShort')}: {s.maxPrice} ₽</span>}
                     {s.keywordGroups?.length > 0 
                       ? <span>{t('keywordGroups')}: {s.keywordGroups.map(g => g.join(' | ')).join(', ')}</span>
                       : s.mandatoryKeywords?.length > 0 && <span>{t('mustHave')}: {s.mandatoryKeywords.join(', ')}</span>
                     }
+                    {s.includeReserved && (
+                      <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium">
+                        🔒 {t('reservedAllowed')}
+                      </span>
+                    )}
+                    {s.onlyDelivery && (
+                      <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 font-medium">
+                        🚚 {t('deliveryOnlyBadge')}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-2">

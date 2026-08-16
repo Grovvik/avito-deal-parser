@@ -50,9 +50,10 @@ class Scheduler {
                     const currentDeals = [...this.dealsManager.getDeals()];
 
                     if (Array.isArray(rawItems) && rawItems.length > 0) {
+                        const allowReserved = Boolean(search.includeReserved || search.sendReserved);
                         const activeRawIds = new Set(
                             rawItems
-                                .filter(item => !item.isReserved)
+                                .filter(item => allowReserved ? true : !item.isReserved)
                                 .map(item => String(item.id))
                         );
                         let expiredCount = 0;
@@ -73,7 +74,7 @@ class Scheduler {
                         }
                     }
 
-                    const deals = this.analyzer.analyze(rawItems, search.maxPrice, search.keywords || search);
+                    const deals = this.analyzer.analyze(rawItems, search.maxPrice, search);
 
                     for (const item of deals) {
                         const existingDeal = currentDeals.find(d => String(d.id) === String(item.id));

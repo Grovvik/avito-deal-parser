@@ -52,7 +52,13 @@ class UI {
         return kb;
     }
 
-    static buildEditSearchKeyboard(index) {
+    static buildEditSearchKeyboard(index, search = {}) {
+        const includeReserved = Boolean(search.includeReserved || search.sendReserved);
+        const onlyDelivery = Boolean(search.onlyDelivery || search.requireDelivery);
+
+        const reservedText = `🔒 ${i18n.t('toggle_reserved')}: ${includeReserved ? '🟢 ' + i18n.t('reserved_allowed') : '🔴 ' + i18n.t('reserved_skipped')}`;
+        const deliveryText = `🚚 ${i18n.t('toggle_delivery')}: ${onlyDelivery ? '🟢 ' + i18n.t('delivery_only') : '⚪️ ' + i18n.t('delivery_any')}`;
+
         return new InlineKeyboard()
             .text(`🔗 ${i18n.t('edit_url')}`, `edit_param_url_${index}`)
             .text(`💰 ${i18n.t('edit_max_price')}`, `edit_param_max_price_${index}`)
@@ -60,6 +66,10 @@ class UI {
             .text(`📌 ${i18n.t('edit_mandatory_kw')}`, `edit_param_mandatory_${index}`)
             .row()
             .text(`💡 ${i18n.t('edit_optional_kw')}`, `edit_param_optional_${index}`)
+            .row()
+            .text(reservedText, `toggle_search_reserved_${index}`)
+            .row()
+            .text(deliveryText, `toggle_search_delivery_${index}`)
             .row()
             .text(`🗑 ${i18n.t('delete_search')}`, `delete_search_${index}`)
             .row()
@@ -71,37 +81,43 @@ class UI {
     }
 
     static renderDashboardMessage(config, sentCount) {
-        let searchesStr = '<code>No active searches</code>';
+        let searchesStr = `<code>${i18n.t('no_active_searches')}</code>`;
         if (config.searches && config.searches.length > 0) {
             searchesStr = config.searches.map((s, i) => {
-                let words = '[No Keywords]';
+                let words = `[${i18n.t('no_keywords')}]`;
                 const mandatory = s.mandatoryKeywords || s.keywords?.mandatory || (Array.isArray(s.keywords) ? s.keywords : []);
                 const optional = s.optionalKeywords || s.keywords?.optional || [];
-                const m = mandatory.length ? `Req: ${mandatory.join(', ')}` : '';
-                const o = optional.length ? `Opt: ${optional.join(', ')}` : '';
+                const m = mandatory.length ? `${i18n.t('req_short')}: ${mandatory.join(', ')}` : '';
+                const o = optional.length ? `${i18n.t('opt_short')}: ${optional.join(', ')}` : '';
                 const parts = [m, o].filter(Boolean);
                 if (parts.length > 0) words = `[${parts.join(' | ')}]`;
-                return `${i + 1}. <a href="${s.url}">Link</a> | 💰 <b>≤ ${s.maxPrice} ₽</b> | ${this.escapeHtml(words)}`;
+
+                const flags = [];
+                if (s.includeReserved || s.sendReserved) flags.push('🔒 ' + i18n.t('reserved_allowed'));
+                if (s.onlyDelivery || s.requireDelivery) flags.push('🚚 ' + i18n.t('delivery_only'));
+                const flagsStr = flags.length ? ` | <i>${flags.join(', ')}</i>` : '';
+
+                return `${i + 1}. <a href="${s.url}">${i18n.t('link')}</a> | 💰 <b>≤ ${s.maxPrice} ₽</b> | ${this.escapeHtml(words)}${flagsStr}`;
             }).join('\n');
         }
 
         return `🤖 <b>${i18n.t('dashboard_title')}</b>\n\n` +
                `<b>${i18n.t('polling_status')}:</b> ${config.isPollingEnabled ? '🟢 ' + i18n.t('enabled') : '🔴 ' + i18n.t('disabled')}\n` +
                `<b>${i18n.t('interval')}:</b> <code>${config.intervalMinutes} ${i18n.t('minutes')}</code>\n` +
-               `<b>${i18n.t('total_deals')}:</b> <code>${sentCount} items</code>\n\n` +
-               `<b>Active Search Tasks (${config.searches?.length || 0}):</b>\n${searchesStr}`;
+               `<b>${i18n.t('total_deals')}:</b> <code>${sentCount} ${i18n.t('items_unit')}</code>\n\n` +
+               `<b>${i18n.t('active_search_tasks')} (${config.searches?.length || 0}):</b>\n${searchesStr}`;
     }
 
     static renderManageSearchesMessage(searchesCount) {
         if (searchesCount === 0) {
-            return `⚙️ <b>${i18n.t('manage_searches_title')}</b>\n\n<i>No active search tasks found. Click "Add Search Task" on dashboard to create one.</i>`;
+            return `⚙️ <b>${i18n.t('manage_searches_title')}</b>\n\n<i>${i18n.t('no_active_searches_hint')}</i>`;
         }
-        return `⚙️ <b>${i18n.t('manage_searches_title')}</b>\nSelect a task from the list below to edit its parameters:`;
+        return `⚙️ <b>${i18n.t('manage_searches_title')}</b>\n${i18n.t('select_task_to_edit')}`;
     }
 
     static renderEditSearchMessage(search, index) {
-        let reqWords = '<i>None</i>';
-        let optWords = '<i>None</i>';
+        let reqWords = `<i>${i18n.t('none')}</i>`;
+        let optWords = `<i>${i18n.t('none')}</i>`;
 
         const mandatory = search.mandatoryKeywords || search.keywords?.mandatory || (Array.isArray(search.keywords) ? search.keywords : []);
         const optional = search.optionalKeywords || search.keywords?.optional || [];
@@ -113,26 +129,34 @@ class UI {
             optWords = optional.map(w => `<code>${this.escapeHtml(w)}</code>`).join(' ');
         }
 
-        return `✏️ <b>Editing Search Task #${index + 1}</b>\n\n` +
-               `🔗 <b>URL:</b> <a href="${search.url}">Open Link</a>\n` +
-               `💰 <b>Max Price:</b> <code>${search.maxPrice} ₽</code>\n` +
-               `📌 <b>Mandatory Keywords:</b> ${reqWords}\n` +
-               `💡 <b>Optional Keywords:</b> ${optWords}\n\n` +
-               `Choose a parameter to edit:`;
+        const includeReserved = Boolean(search.includeReserved || search.sendReserved);
+        const onlyDelivery = Boolean(search.onlyDelivery || search.requireDelivery);
+
+        const reservedStatus = includeReserved ? '🟢 ' + i18n.t('reserved_allowed') : '🔴 ' + i18n.t('reserved_skipped');
+        const deliveryStatus = onlyDelivery ? '🟢 ' + i18n.t('delivery_only') : '⚪️ ' + i18n.t('delivery_any');
+
+        return `✏️ <b>${i18n.t('editing_search_task')} #${index + 1}</b>\n\n` +
+               `🔗 <b>${i18n.t('url')}:</b> <a href="${search.url}">${i18n.t('open_link')}</a>\n` +
+               `💰 <b>${i18n.t('max_price')}:</b> <code>${search.maxPrice} ₽</code>\n` +
+               `📌 <b>${i18n.t('mandatory_keywords')}:</b> ${reqWords}\n` +
+               `💡 <b>${i18n.t('optional_keywords')}:</b> ${optWords}\n` +
+               `🔒 <b>${i18n.t('toggle_reserved')}:</b> ${reservedStatus}\n` +
+               `🚚 <b>${i18n.t('toggle_delivery')}:</b> ${deliveryStatus}\n\n` +
+               `${i18n.t('choose_param_to_edit')}`;
     }
 
     static renderDealNotification(item, price, url, priceDropInfo = null) {
-        const location = item.geo?.formattedAddress || item.location?.name || item.location || 'Not specified';
-        const category = item.category?.name || item.category || 'Not specified';
+        const location = item.geo?.formattedAddress || item.location?.name || item.location || i18n.t('not_specified');
+        const category = item.category?.name || item.category || i18n.t('not_specified');
         const ratingInfo = item.rating?.score 
             ? `⭐️ ${item.rating.score} (${item.rating.summary || ''})` 
             : null;
     
-        let infoBlock = `📍 <b>Location:</b> ${this.escapeHtml(location)}\n` +
-                        `📁 <b>Category:</b> ${this.escapeHtml(category)}`;
+        let infoBlock = `📍 <b>${i18n.t('location')}:</b> ${this.escapeHtml(location)}\n` +
+                        `📁 <b>${i18n.t('category')}:</b> ${this.escapeHtml(category)}`;
         
         if (ratingInfo) {
-            infoBlock += `\n👤 <b>Seller:</b> ${this.escapeHtml(ratingInfo)}`;
+            infoBlock += `\n👤 <b>${i18n.t('seller')}:</b> ${this.escapeHtml(ratingInfo)}`;
         }
 
         const isUpdate = priceDropInfo && priceDropInfo.type === 'update';
@@ -144,11 +168,11 @@ class UI {
         }
     
         return `${titleText}\n\n` +
-               `📌 <b>Title:</b> ${this.escapeHtml(item.title)}\n` +
+               `📌 <b>${i18n.t('title')}:</b> ${this.escapeHtml(item.title)}\n` +
                `💰 <b>${i18n.t('price')}:</b> ${priceText}\n` +
                `🆔 <b>ID:</b> <code>${item.id}</code>\n\n` +
                `${infoBlock}\n\n` +
-               `🔗 <a href="${item.url || url}">Open on Avito</a>`;
+               `🔗 <a href="${item.url || url}">${i18n.t('open_on_avito')}</a>`;
     }
 }
 
