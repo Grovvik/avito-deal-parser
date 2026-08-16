@@ -110,7 +110,11 @@ class AvitoHtmlScraper {
                     const image = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '') : '';
 
                     const fullText = el.textContent || '';
-                    const isReserved = fullText.toLowerCase().includes('забронирован');
+                    const isReserved = fullText.toLowerCase().includes('забронирован') || fullText.toLowerCase().includes('бронь');
+                    const hasDelivery = fullText.toLowerCase().includes('доставк') || Boolean(el.querySelector('[data-marker*="delivery"], [class*="delivery"]'));
+
+                    const locEl = el.querySelector('[data-marker="item-address"]') || el.querySelector('[class*="geo-root"]') || el.querySelector('[class*="style-item-address"]');
+                    const location = locEl ? locEl.textContent.trim() : '';
 
                     return {
                         id: String(id),
@@ -120,8 +124,9 @@ class AvitoHtmlScraper {
                         url,
                         image,
                         isReserved,
+                        hasDelivery,
                         category: '',
-                        location: ''
+                        location
                     };
                 }).filter(item => item.id && item.title);
             });

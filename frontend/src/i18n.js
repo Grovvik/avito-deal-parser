@@ -103,7 +103,13 @@ const resources = {
       "noLogsMatch": "No logs match the current filter.",
       "keywordGroups": "Keyword Groups",
       "addKeywordGroup": "Add Group",
-      "keywordGroupPlaceholder": "e.g. word1, word2"
+      "keywordGroupPlaceholder": "e.g. word1, word2",
+      "includeReserved": "Send reserved items",
+      "includeReservedDesc": "Do not skip items marked as reserved",
+      "onlyDelivery": "Only with delivery",
+      "onlyDeliveryDesc": "Only send items with Avito delivery available",
+      "reservedAllowed": "Reserved allowed",
+      "deliveryOnlyBadge": "Delivery only"
     }
   },
   ru: {
@@ -207,7 +213,13 @@ const resources = {
       "noLogsMatch": "Нет логов, соответствующих фильтру.",
       "keywordGroups": "Группы ключевых слов",
       "addKeywordGroup": "Добавить группу",
-      "keywordGroupPlaceholder": "например, слово1, слово2"
+      "keywordGroupPlaceholder": "например, слово1, слово2",
+      "includeReserved": "Отправлять забронированные",
+      "includeReservedDesc": "Не пропускать объявления со статусом «Забронировано»",
+      "onlyDelivery": "Только с доставкой",
+      "onlyDeliveryDesc": "Отправлять только объявления с доступной доставкой",
+      "reservedAllowed": "Забронированные",
+      "deliveryOnlyBadge": "Только доставка"
     }
   }
 };

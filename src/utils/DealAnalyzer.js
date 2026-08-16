@@ -80,11 +80,14 @@ class DealAnalyzer {
         return false;
     }
 
-    analyze(items, maxPrice, keywordsConfig) {
-        const { keywordGroups, exclude } = this.normalizeKeywords(keywordsConfig);
+    analyze(items, maxPrice, searchConfig) {
+        const { keywordGroups, exclude } = this.normalizeKeywords(searchConfig);
+        const includeReserved = Boolean(searchConfig?.includeReserved || searchConfig?.sendReserved);
+        const onlyDelivery = Boolean(searchConfig?.onlyDelivery || searchConfig?.requireDelivery);
 
         const filtered = items.filter(item => {
-            if (item.isReserved) return false;
+            if (!includeReserved && item.isReserved) return false;
+            if (onlyDelivery && !item.hasDelivery) return false;
 
             if (item.price > maxPrice || item.price <= 0) return false;
 
