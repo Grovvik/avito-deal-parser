@@ -109,7 +109,7 @@ class TelegramBot {
         const options = {
             parse_mode: 'HTML',
             link_preview_options: { is_disabled: true },
-            reply_markup: UI.buildEditSearchKeyboard(index)
+            reply_markup: UI.buildEditSearchKeyboard(index, search)
         };
 
         if (messageId) {
@@ -222,6 +222,30 @@ class TelegramBot {
                 }
                 await this.safeEditManageSearches(ctx, ctx.session.dashboardMessageId);
                 await ctx.answerCallbackQuery('Task deleted');
+                return;
+            }
+
+            if (action.startsWith('toggle_search_reserved_')) {
+                const index = parseInt(action.replace('toggle_search_reserved_', ''), 10);
+                const searches = [...(this.configManager.config.searches || [])];
+                if (searches[index]) {
+                    searches[index].includeReserved = !searches[index].includeReserved;
+                    this.configManager.saveConfig({ searches });
+                    await this.safeEditSearchTask(ctx, ctx.session.dashboardMessageId, index);
+                    await ctx.answerCallbackQuery(searches[index].includeReserved ? '🔒 Reserved: Included' : '🔒 Reserved: Skipped');
+                }
+                return;
+            }
+
+            if (action.startsWith('toggle_search_delivery_')) {
+                const index = parseInt(action.replace('toggle_search_delivery_', ''), 10);
+                const searches = [...(this.configManager.config.searches || [])];
+                if (searches[index]) {
+                    searches[index].onlyDelivery = !searches[index].onlyDelivery;
+                    this.configManager.saveConfig({ searches });
+                    await this.safeEditSearchTask(ctx, ctx.session.dashboardMessageId, index);
+                    await ctx.answerCallbackQuery(searches[index].onlyDelivery ? '🚚 Delivery only: Enabled' : '🚚 Delivery filter: Disabled');
+                }
                 return;
             }
 
@@ -427,7 +451,9 @@ class TelegramBot {
                     keywords: {
                         mandatory: ctx.session.tempMandatoryKeywords || [],
                         optional: optional
-                    }
+                    },
+                    includeReserved: false,
+                    onlyDelivery: false
                 });
 
                 this.configManager.saveConfig({ searches: currentSearches });
