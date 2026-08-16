@@ -7,12 +7,12 @@ class AvitoMobileFetchScraper {
         this.proxyUrl = proxyUrl;
     }
 
-    normalizeItem(raw) {
+    normalizeItem(raw, pageDefaults = {}) {
         let price = 0;
         if (typeof raw.price === 'number') price = raw.price;
         else if (raw.priceDetailed?.value) price = Number(raw.priceDetailed.value);
         else if (raw.price?.current) {
-            const parsed = parseInt(raw.price.current.replace(/\D/g, ''), 10);
+            const parsed = parseInt(String(raw.price.current).replace(/\D/g, ''), 10);
             price = isNaN(parsed) ? 0 : parsed;
         }
         else if (typeof raw.price === 'string') {
@@ -20,14 +20,25 @@ class AvitoMobileFetchScraper {
             price = isNaN(parsed) ? 0 : parsed;
         }
 
-        const rawUrl = raw.urlPath || raw.url || raw.absoluteUrl || raw.link;
+        const rawUrl = raw.urlPath || raw.url || raw.absoluteUrl || raw.link || raw.uri;
         const url = rawUrl
-            ? (rawUrl.startsWith('http') ? rawUrl : `https://www.avito.ru${rawUrl}`)
+            ? (rawUrl.startsWith('http') ? rawUrl : `https://www.avito.ru${rawUrl.split('?')[0]}`)
             : `https://www.avito.ru/items/${raw.id}`;
 
         const isReserved = Boolean(
             raw.isReserved ||
-            (Array.isArray(raw.badges) && raw.badges.some(b => b.type === 'reserved' || b.title?.toLowerCase().includes('забронирован')))
+            raw.status === 'reserved' ||
+            (Array.isArray(raw.badges) && raw.badges.some(b => b.type === 'reserved' || b.title?.toLowerCase().includes('забронирован') || b.title?.toLowerCase().includes('бронь'))) ||
+            (Array.isArray(raw.badgeBar?.badges) && raw.badgeBar.badges.some(b => b.type === 'reserved' || b.title?.toLowerCase().includes('забронирован') || b.title?.toLowerCase().includes('бронь')))
+        );
+
+        const hasDelivery = Boolean(
+            raw.hasDelivery ||
+            raw.isDelivery ||
+            raw.delivery ||
+            (Array.isArray(raw.contacts) && raw.contacts.some(c => c.contactType === 'cart' || c.contactTitle?.toLowerCase().includes('корзин'))) ||
+            (Array.isArray(raw.badges) && raw.badges.some(b => b.title?.toLowerCase().includes('доставк') || b.type?.toLowerCase().includes('delivery'))) ||
+            (Array.isArray(raw.badgeBar?.badges) && raw.badgeBar.badges.some(b => b.title?.toLowerCase().includes('доставк') || b.type?.toLowerCase().includes('delivery')))
         );
 
         let image = '';
@@ -42,7 +53,29 @@ class AvitoMobileFetchScraper {
             } else if (firstImg && typeof firstImg === 'object') {
                 image = firstImg['640x480'] || firstImg['1280x960'] || firstImg['140x105'] || firstImg.url || firstImg.src || '';
             }
+        } else if (Array.isArray(raw.galleryItems) && raw.galleryItems.length > 0) {
+            const firstGallery = raw.galleryItems[0]?.value || raw.galleryItems[0];
+            if (typeof firstGallery === 'string') {
+                image = firstGallery;
+            } else if (firstGallery && typeof firstGallery === 'object') {
+                image = firstGallery['678x678'] || firstGallery['558x558'] || firstGallery['507x507'] || firstGallery['372x372'] || firstGallery['140x140'] || firstGallery.url || firstGallery.src || '';
+            }
         }
+
+        const location = raw.geo?.formattedAddress ||
+            raw.location?.name ||
+            (typeof raw.location === 'string' ? raw.location : '') ||
+            raw.sellerInfo?.logoImageAlt ||
+            raw.address ||
+            (raw.imageAlt && raw.imageAlt.includes(', ') ? raw.imageAlt.split(', ').pop().trim() : '') ||
+            pageDefaults.location ||
+            '';
+
+        const category = raw.category?.name ||
+            (typeof raw.category === 'string' ? raw.category : '') ||
+            raw.categoryName ||
+            pageDefaults.category ||
+            '';
 
         return {
             id: String(raw.id || raw.itemId),
@@ -52,25 +85,45 @@ class AvitoMobileFetchScraper {
             url: url,
             image: image,
             isReserved: isReserved,
-            category: raw.category?.name || '',
-            location: raw.location?.name || ''
+            hasDelivery: hasDelivery,
+            category: category,
+            location: location
         };
     }
 
     extractItemsFromState(stateData) {
         if (!stateData) return [];
 
+        let pageCategory = '';
+        let pageLocation = '';
+
+        const searchObj = stateData.search || stateData.state?.loaderData?.search || stateData.loaderData?.search;
+        if (searchObj) {
+            const catFilter = (searchObj.filters || []).find(f => f.type === 'categoryNodes' || f.isCategoryNode || f.id === 'categoryNodes');
+            if (catFilter?.title) {
+                pageCategory = catFilter.title;
+            }
+            if (searchObj.header?.subTitle?.title) {
+                pageLocation = searchObj.header.subTitle.title;
+            }
+        }
+
+        const pageDefaults = {
+            category: pageCategory,
+            location: pageLocation
+        };
+
         const isAvitoItem = (obj) => {
             if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
             const hasId = obj.id !== undefined || obj.itemId !== undefined;
-            const hasTitle = typeof obj.title === 'string';
+            const hasTitle = typeof obj.title === 'string' && obj.title.trim().length > 0;
             const hasPrice = obj.price !== undefined || obj.priceDetailed !== undefined;
-            const hasUri = typeof obj.uri === 'string' || typeof obj.url === 'string' || typeof obj.urlPath === 'string';
-            return hasId && hasTitle && (hasPrice || hasUri);
+            const hasItemMarkers = Boolean(obj.galleryItems || obj.sellerInfo || obj.badgeBar || obj.contacts || obj.categoryId);
+            const isSuggestion = typeof obj.uri === 'string' && (obj.uri.includes('?q=') || obj.uri.includes('/search?'));
+            return hasId && hasTitle && hasPrice && (hasItemMarkers || !isSuggestion);
         };
 
         const visited = new Set();
-
         const allItems = [];
         const findItemsArray = (current) => {
             if (!current || typeof current !== 'object') return;
@@ -97,7 +150,7 @@ class AvitoMobileFetchScraper {
             }
         };
 
-        const searchRoot = stateData.state?.loaderData || stateData.loaderData || stateData;
+        const searchRoot = searchObj || stateData.state?.loaderData || stateData.loaderData || stateData;
         findItemsArray(searchRoot);
         
         // Remove duplicates by ID
@@ -111,7 +164,7 @@ class AvitoMobileFetchScraper {
             }
         }
 
-        return uniqueItems.map(item => this.normalizeItem(item));
+        return uniqueItems.map(item => this.normalizeItem(item, pageDefaults));
     }
 
     async fetchRawItems(targetUrl) {
