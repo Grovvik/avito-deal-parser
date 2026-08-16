@@ -27,12 +27,12 @@ const SearchesPage = ({ t, config, openSearchModal, setDeleteSearchIdx }) => {
                     }
                     {s.includeReserved && (
                       <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium">
-                        🔒 {t('reservedAllowed')}
+                        {t('reservedAllowed')}
                       </span>
                     )}
                     {s.onlyDelivery && (
                       <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 font-medium">
-                        🚚 {t('deliveryOnlyBadge')}
+                        {t('deliveryOnlyBadge')}
                       </span>
                     )}
                   </div>
