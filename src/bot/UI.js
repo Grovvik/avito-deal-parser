@@ -14,7 +14,8 @@ class UI {
             .text(i18n.t('add_search_task'), 'add_search')
             .text(i18n.t('manage_searches'), 'manage_searches')
             .row()
-            .text(`${i18n.t('interval')}: ${config.intervalMinutes} ${i18n.t('minutes')}`, 'set_interval')
+            .text(`⏱ ${i18n.t('interval')}: ${config.intervalMinutes || 5} ${i18n.t('minutes')}`, 'set_interval')
+            .text(`🌙 ${i18n.t('night_interval')}: ${config.nightIntervalMinutes || 15} ${i18n.t('minutes')}`, 'set_night_interval')
             .row()
             .text(i18n.t('refresh_dashboard'), 'refresh_dashboard');
     }

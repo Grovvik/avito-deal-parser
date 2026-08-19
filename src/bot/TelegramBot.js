@@ -348,6 +348,17 @@ class TelegramBot {
                 ctx.session.promptMessageId = prompt.message_id;
                 await ctx.answerCallbackQuery();
                 return;
+            } else if (action === 'set_night_interval') {
+                ctx.session.adminState = 'awaiting_night_interval';
+                const config = this.configManager.config;
+                i18n.setLocale(config.locale || 'en');
+                const prompt = await ctx.reply(i18n.t('send_night_interval_prompt'), {
+                    parse_mode: 'HTML',
+                    reply_markup: UI.buildCancelKeyboard('back_to_dashboard')
+                });
+                ctx.session.promptMessageId = prompt.message_id;
+                await ctx.answerCallbackQuery();
+                return;
             } else if (action === 'add_search') {
                 ctx.session.adminState = 'awaiting_search_url';
                 const prompt = await ctx.reply('🔗 <b>Step 1/4:</b> Send the new <b>Avito Search URL</b>:', {
@@ -378,6 +389,22 @@ class TelegramBot {
                 const parsedInterval = parseInt(textInput, 10);
                 if (!isNaN(parsedInterval) && parsedInterval >= 1) {
                     this.configManager.saveConfig({ intervalMinutes: parsedInterval });
+                    this.scheduler.restart();
+                }
+                await this.safeDeleteMessage(ctx, userMsgId);
+                if (ctx.session.promptMessageId) {
+                    await this.safeDeleteMessage(ctx, ctx.session.promptMessageId);
+                    ctx.session.promptMessageId = null;
+                }
+                ctx.session.adminState = null;
+                await this.safeEditDashboard(ctx, ctx.session.dashboardMessageId);
+                return;
+            }
+
+            if (state === 'awaiting_night_interval') {
+                const parsedInterval = parseInt(textInput, 10);
+                if (!isNaN(parsedInterval) && parsedInterval >= 1) {
+                    this.configManager.saveConfig({ nightIntervalMinutes: parsedInterval });
                     this.scheduler.restart();
                 }
                 await this.safeDeleteMessage(ctx, userMsgId);

@@ -18,6 +18,7 @@ A powerful monitoring system for Avito listings featuring an extensible architec
   * **Discord Webhook**: Supports embedding deal information with images and proxy support.
   * **MQTT Broker**: Sends clean, standardized JSON deal payloads to home automation services (e.g. Home Assistant).
 * **Notification Management**: Toggle providers on/off and configure settings (Webhooks, Broker URLs, Chat IDs, Proxies) via dedicated modal windows.
+* **Day & Night Polling Intervals**: Customizable separate interval for night hours (01:00 – 05:00 MSK) when new listings appear rarely, optimizing check frequency.
 * **Advanced Keyword Filtering**: Filters items using Keyword Variation Groups, where you can specify multiple groups of words and at least one word from each group must be present.
 * **Proxy Support**: Connect via proxies for Telegram, Discord, and Playwright browsers.
 

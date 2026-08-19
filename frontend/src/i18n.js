@@ -109,7 +109,11 @@ const resources = {
       "onlyDelivery": "Only with delivery",
       "onlyDeliveryDesc": "Only send items with Avito delivery available",
       "reservedAllowed": "Reserved allowed",
-      "deliveryOnlyBadge": "Delivery only"
+      "deliveryOnlyBadge": "Delivery only",
+      "dayPollingInterval": "Day Polling Interval",
+      "nightPollingInterval": "Night Polling Interval",
+      "nightMode": "Night Mode",
+      "nightModeBadge": "01:00-05:00 MSK"
     }
   },
   ru: {
@@ -219,7 +223,11 @@ const resources = {
       "onlyDelivery": "Только с доставкой",
       "onlyDeliveryDesc": "Отправлять только объявления с доступной доставкой",
       "reservedAllowed": "Забронированные",
-      "deliveryOnlyBadge": "Только доставка"
+      "deliveryOnlyBadge": "Только доставка",
+      "dayPollingInterval": "Дневной интервал опроса",
+      "nightPollingInterval": "Ночной интервал опроса",
+      "nightMode": "Ночной режим",
+      "nightModeBadge": "01:00-05:00 МСК"
     }
   }
 };

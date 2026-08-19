@@ -85,6 +85,20 @@ function App() {
     saveConfig(newConfig);
   };
 
+  const handleNightIntervalChange = (minutes) => {
+    if (isNaN(minutes) || minutes < 1) return;
+    const newConfig = { ...config, nightIntervalMinutes: minutes };
+    setConfig(newConfig);
+    saveConfig(newConfig);
+  };
+
+  const handleNightModeToggle = () => {
+    const isCurrentlyEnabled = config.nightModeEnabled !== false;
+    const newConfig = { ...config, nightModeEnabled: !isCurrentlyEnabled };
+    setConfig(newConfig);
+    saveConfig(newConfig);
+  };
+
   const handleSaveCookies = (e) => {
     e.preventDefault();
     try {
@@ -466,6 +480,8 @@ function App() {
               changeLanguage={changeLanguage}
               config={config}
               handleIntervalChange={handleIntervalChange}
+              handleNightIntervalChange={handleNightIntervalChange}
+              handleNightModeToggle={handleNightModeToggle}
               status={status}
               openCookiesModal={openCookiesModal}
               openNotificationModal={openNotificationModal}

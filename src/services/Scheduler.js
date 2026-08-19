@@ -11,6 +11,7 @@ class Scheduler {
         this.timer = null;
         this.isPending = false;
         this.onStatusChange = null;
+        this.lastLoggedInterval = null;
     }
 
     async runTask() {
@@ -124,21 +125,98 @@ class Scheduler {
         }
     }
 
+    isCurrentlyNight() {
+        const config = this.configManager.config;
+        if (config.nightModeEnabled === false) return false;
+
+        const startHour = Number.isInteger(config.nightStartHour) ? config.nightStartHour : 1;
+        const endHour = Number.isInteger(config.nightEndHour) ? config.nightEndHour : 5;
+
+        // Moscow is UTC+3 (no daylight saving time)
+        const now = new Date();
+        const utcHours = now.getUTCHours();
+        const utcMinutes = now.getUTCMinutes();
+        const mskHours = (utcHours + 3) % 24;
+
+        const currentTotalMinutes = mskHours * 60 + utcMinutes;
+        const startTotalMinutes = startHour * 60;
+        const endTotalMinutes = endHour * 60;
+
+        if (startTotalMinutes < endTotalMinutes) {
+            return currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes;
+        } else {
+            return currentTotalMinutes >= startTotalMinutes || currentTotalMinutes < endTotalMinutes;
+        }
+    }
+
+    getActiveIntervalMinutes() {
+        const config = this.configManager.config;
+        const defaultDayInterval = Number(config.intervalMinutes) || 5;
+        const defaultNightInterval = Number(config.nightIntervalMinutes) || 15;
+
+        if (this.isCurrentlyNight()) {
+            return defaultNightInterval;
+        }
+        return defaultDayInterval;
+    }
+
+    scheduleNext() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+
+        const config = this.configManager.config;
+        if (!config.isPollingEnabled) {
+            return;
+        }
+
+        const intervalMinutes = this.getActiveIntervalMinutes();
+        const isNight = this.isCurrentlyNight();
+        const currentModeKey = isNight ? `night_${intervalMinutes}` : `day_${intervalMinutes}`;
+
+        if (this.lastLoggedInterval !== currentModeKey) {
+            if (isNight) {
+                this.logger.info(`Switched to night polling interval: ${intervalMinutes}m (01:00-05:00 MSK)`);
+            } else {
+                this.logger.info(`Switched to day polling interval: ${intervalMinutes}m`);
+            }
+            this.lastLoggedInterval = currentModeKey;
+        }
+
+        const intervalMs = intervalMinutes * 60 * 1000;
+        this.logger.info(`Next check scheduled in ${intervalMinutes}m.`);
+
+        this.timer = setTimeout(async () => {
+            try {
+                await this.runTask();
+            } finally {
+                this.scheduleNext();
+            }
+        }, intervalMs);
+    }
+
     async runManualCheck() {
         await this.runTask();
     }
 
     restart() {
         if (this.timer) {
-            clearInterval(this.timer);
+            clearTimeout(this.timer);
             this.timer = null;
         }
 
         const config = this.configManager.config;
-        if (config.isPollingEnabled && config.intervalMinutes > 0) {
-            const intervalMs = config.intervalMinutes * 60 * 1000;
-            this.logger.info(`Polling started. Interval: ${config.intervalMinutes}m`);
-            this.timer = setInterval(() => this.runTask(), intervalMs);
+        if (config.isPollingEnabled) {
+            const intervalMinutes = this.getActiveIntervalMinutes();
+            const isNight = this.isCurrentlyNight();
+            this.lastLoggedInterval = isNight ? `night_${intervalMinutes}` : `day_${intervalMinutes}`;
+            if (isNight) {
+                this.logger.info(`Polling started with night interval: ${intervalMinutes}m (01:00-05:00 MSK)`);
+            } else {
+                this.logger.info(`Polling started with day interval: ${intervalMinutes}m`);
+            }
+            this.scheduleNext();
         } else {
             this.logger.info('Polling is paused.');
         }

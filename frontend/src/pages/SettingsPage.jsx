@@ -12,6 +12,8 @@ const SettingsPage = ({
   changeLanguage,
   config,
   handleIntervalChange,
+  handleNightIntervalChange,
+  handleNightModeToggle,
   status,
   openCookiesModal,
   openNotificationModal,
@@ -21,6 +23,21 @@ const SettingsPage = ({
   const handlePriceDropTypeChange = (e) => {
     saveConfig({ ...config, priceDropNotificationType: e.target.value });
   };
+  const onNightIntervalChange = (val) => {
+    if (typeof handleNightIntervalChange === 'function') {
+      handleNightIntervalChange(val);
+    } else {
+      saveConfig({ ...config, nightIntervalMinutes: val });
+    }
+  };
+  const onNightModeToggle = () => {
+    if (typeof handleNightModeToggle === 'function') {
+      handleNightModeToggle();
+    } else {
+      saveConfig({ ...config, nightModeEnabled: config.nightModeEnabled === false });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -41,18 +58,47 @@ const SettingsPage = ({
           </div>
           <div className="flex items-center space-x-3 sm:pl-6 sm:border-l">
             <Clock size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">{t('pollingInterval')}:</span>
+            <span className="text-sm font-medium">{t('dayPollingInterval')}:</span>
             <div className="flex items-center space-x-2">
               <input
                 type="number"
                 min="1"
                 max="1440"
-                value={config.intervalMinutes || config.checkIntervalMinutes || 5}
+                value={config.intervalMinutes || 5}
                 onChange={e => handleIntervalChange(Number(e.target.value))}
                 className="w-20 h-9 px-2 text-sm rounded-md border border-input bg-transparent text-center font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <span className="text-xs text-muted-foreground">{t('minutes')}</span>
             </div>
+          </div>
+          <div className="flex items-center space-x-3 sm:pl-6 sm:border-l">
+            <Moon size={18} className="text-muted-foreground" />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{t('nightPollingInterval')}:</span>
+              <span className="text-[11px] text-muted-foreground">{t('nightModeBadge')}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="number"
+                min="1"
+                max="1440"
+                disabled={config.nightModeEnabled === false}
+                value={config.nightIntervalMinutes || 15}
+                onChange={e => onNightIntervalChange(Number(e.target.value))}
+                className={`w-20 h-9 px-2 text-sm rounded-md border border-input bg-transparent text-center font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${config.nightModeEnabled === false ? 'opacity-40 cursor-not-allowed' : ''}`}
+              />
+              <span className="text-xs text-muted-foreground">{t('minutes')}</span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3 sm:pl-6 sm:border-l">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{t('nightMode')}:</span>
+              <span className="text-[11px] text-muted-foreground">{config.nightModeEnabled !== false ? t('enabled') : t('disabled')}</span>
+            </div>
+            <Switch
+              checked={config.nightModeEnabled !== false}
+              onChange={onNightModeToggle}
+            />
           </div>
           <div className="flex items-center space-x-3 sm:pl-6 sm:border-l">
             <div className="flex items-center space-x-2">

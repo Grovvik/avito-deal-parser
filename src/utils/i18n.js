@@ -60,7 +60,9 @@ const en = {
     category: 'Category',
     seller: 'Seller',
     title: 'Title',
-    open_on_avito: 'Open on Avito'
+    open_on_avito: 'Open on Avito',
+    night_interval: 'Night Interval',
+    send_night_interval_prompt: '🌙 Send new <b>Night Polling Interval</b> (01:00-05:00 MSK) in minutes (e.g. <code>15</code>):'
 };
 
 const ru = {
@@ -125,7 +127,9 @@ const ru = {
     category: 'Категория',
     seller: 'Продавец',
     title: 'Название',
-    open_on_avito: 'Открыть на Авито'
+    open_on_avito: 'Открыть на Авито',
+    night_interval: 'Ночной интервал',
+    send_night_interval_prompt: '🌙 Введите новый <b>ночной интервал опроса</b> (01:00-05:00 МСК) в минутах (напр. <code>15</code>):'
 };
 
 class I18n {

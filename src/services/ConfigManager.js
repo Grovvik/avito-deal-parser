@@ -26,6 +26,10 @@ class ConfigManager {
             const initialConfig = {
                 searches: [], // { url: string, maxPrice: number, keywords: string[] }
                 intervalMinutes: 5,
+                nightIntervalMinutes: 15,
+                nightModeEnabled: true,
+                nightStartHour: 1,
+                nightEndHour: 5,
                 isPollingEnabled: false,
                 locale: 'en',
                 scrapersOrder: ['json', 'html'],
@@ -41,10 +45,26 @@ class ConfigManager {
             return initialConfig;
         }
         try {
-            return JSON.parse(fs.readFileSync(this.configFile, 'utf8'));
+            const raw = JSON.parse(fs.readFileSync(this.configFile, 'utf8'));
+            return {
+                intervalMinutes: 5,
+                nightIntervalMinutes: 15,
+                nightModeEnabled: true,
+                nightStartHour: 1,
+                nightEndHour: 5,
+                ...raw
+            };
         } catch (err) {
             this.logger.error(`Failed to read config: ${err.message}`);
-            return { searches: [], intervalMinutes: 5, isPollingEnabled: false };
+            return {
+                searches: [],
+                intervalMinutes: 5,
+                nightIntervalMinutes: 15,
+                nightModeEnabled: true,
+                nightStartHour: 1,
+                nightEndHour: 5,
+                isPollingEnabled: false
+            };
         }
     }
 
