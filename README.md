@@ -120,4 +120,4 @@ The `/app/data` volume contains:
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](https://www.google.com/search?q=LICENSE) for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
